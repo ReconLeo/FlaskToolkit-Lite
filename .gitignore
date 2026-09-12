@@ -17,6 +17,7 @@ data/*.json
 logs/
 temp/
 backups/
+releases/
 .plugin_cache/
 # 插件运行时状态（auth 首次启动自动重建 admin/admin123）
 plugins/data/

@@ -822,6 +822,7 @@ python tools/config.py set DEBUG true
 | `tools/package.py` | 插件/前端工具打包与查看（pack/show） | 10.4 |
 | `tools/backup.py` | 手动备份 / 恢复 | 14.2 |
 | `tools/reset.py` | 深度重置（服务停止时） | 14.3 |
+| `tools/release.py` | 发布工具链（bump 版本号 / build 更新包 + changelog.json） | — |
 
 ### 14.1 启动完整性自检（core/selfcheck.py）
 
