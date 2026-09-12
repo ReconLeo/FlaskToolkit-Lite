@@ -9,6 +9,8 @@
 
 A Flask-based **plugin framework** for running scattered Python plugins and pure-frontend tools in one unified runtime.
 
+> **Lite vs the main FlaskToolkit** — Lite is the deliberate **single-machine feature-subset** of the main [FlaskToolkit](https://github.com/ReconLeo/FlaskToolkit) (v4.2.2 baseline). Plugin-package format, permission model and routing contracts stay identical, so **any plugin that runs on Lite also runs on the main framework**. Lite strips main-only weight for personal / small self-hosted use (no plugin-signature / package-integrity enforcement, audit log, multi-user management, or stats/logs admin pages). Pick the **main FlaskToolkit** when you need the full set — audit, plugin signing, multi-user, stats/logs dashboards, plus an Enterprise roadmap (RBAC, sandboxing, CSP hardening, LDAP/SSO, Docker, multi-tenancy...).
+
 ## Features
 
 - **Plugin packages (.zip)** — backend plugins ship with templates/static assets; frontend HTML tools are first-class citizens. Install / update / uninstall / enable / disable at runtime.
