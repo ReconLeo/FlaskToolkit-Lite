@@ -12,6 +12,10 @@
 - **下载能力统一（5.6.x）**：`send_file_response` 增强——中文文件名自动按 **RFC 5987（filename*）** 编码避免乱码、**下载统计**默认计入插件热度、支持 Range 断点续传（206）、`content_disposition_type`/`count_download`/`stats_endpoint` 参数。
 - **依赖检查时机（生命周期）**：`on_load` 阶段跨插件依赖检查默认降级为 **warning**（不阻断）；新增 **`on_ready` 就绪钩子**——所有插件加载完成后统一调用（此时 `global_var.plugins` 完整，依赖判断准确）；启用严格模式（`PLUGIN_STRICT_MODE=True`）时依赖确认延后到 `on_ready` 执行。
 
+### 核心修复同步（cherry-pick 自 main）
+- **v4.20.2 · 并发 load_plugins 竞态互斥锁**：watcher 线程 × API 处理线程同时 `del sys.modules['plugins.base_plugin']` + 重导入 → CPython `_load_unlocked KeyError('plugins.base_plugin')`。已为 `load_plugins()` 加全局互斥锁（`_LOAD_LOCK` RLock）串行化加载，消除 sys.modules 清理/重导入竞态。
+- **v4.20.2 · Flask 3.x 日志初始化（P0#1）**：Flask 3.x 下 `app.logger` 名 = 应用 import_name（本框架 `'app'`），不再等于框架 core/routes 约定的 `'flask.app'`；仅配置 `app.logger` 时 `'flask.app'` 侧 `.error()/.warning()` 落到 `logging.lastResort`（只进控制台、不进文件），导致 500/权限/插件页面错误及插件日志全部丢失。已对 `app.logger` 与 `'flask.app'` 同时挂载 handler（`_attach`），并让 werkzeug 访问日志落盘。
+
 ---
 
 ## 一、框架特性概览

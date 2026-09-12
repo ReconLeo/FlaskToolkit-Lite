@@ -93,3 +93,4 @@ Lite Edition 是从 FlaskToolkit 演进线上拆分出的**极简、轻量、只
 |------|------|
 | 2026-09-12 | 选定 `v4.2.2`（`4d7d602`）为 Lite 分叉点：核心完备（插件包/权限/后台/运维/CI）、外围最少（深层安全与生态能力均未引入）；补 tag `v4.2.2`、创建分支 `lite` |
 | 2026-09-12 | 档位2·单机化削减落地：保留单管理员登录、后台仅 dashboard+plugins+system；删除 package_sign/audit/user_manage，去后台 logs/stats/audit 页；core 模块 15→13 |
+| 2026-09-13 | 【已知问题·行尾】分叉带出的核心 `.py`（如 `core/plugin_loader.py`、`core/logging_setup.py`）为 **CRLF** 行尾，与 `.gitattributes` 强制 `*.py eol=lf` 不符（主项目文本文件统一 LF）。为最小化本次 cherry-pick diff，**暂不统一行尾**；后续如需治理，用 `git add --renormalize .` 刷新后再提交（注意会让该批文件 diff 放大） |
