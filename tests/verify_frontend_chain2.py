@@ -90,7 +90,7 @@ static_exist = os.path.isdir('/tmp/ftk_verify/templates/frontend_tools/static/de
 check('B html 文件已删除', not html_exist)
 check('B static 目录已删除', not static_exist)
 
-cfg = json.load(open('/tmp/ftk_verify/frontend_tools.json', encoding='utf-8'))
+cfg = json.load(open('/tmp/ftk_verify/data/frontend_tools.json', encoding='utf-8'))
 check('B 配置已移除 demo_tool', not any(t['name'] == 'demo_tool' for t in cfg))
 print('B 副本剩余工具:', [t['name'] for t in cfg])
 print('\n===== 验证完成 =====')

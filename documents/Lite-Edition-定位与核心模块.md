@@ -44,7 +44,7 @@ Lite Edition 是从 FlaskToolkit 演进线上拆分出的**极简、轻量、只
 | `core/selfcheck.py` | 121 | 启动完整性自检 |
 | `core/factory_reset.py` | 195 | Factory Reset |
 | `routes/`（全部 6 个） | ~900 | admin / frontend / interceptor / plugin / public 路由 |
-| `app.py`、`global_var.py`、`templates/`、`static/`、`frontend_tools.json` | — | 入口、全局常量、页面与静态资源 |
+| `app.py`、`global_var.py`、`templates/`、`static/`、`data/frontend_tools.json` | — | 入口、全局常量、页面与静态资源 |
 
 ### 3.2 二级·框架特色（建议保留，构成差异化）
 

@@ -38,7 +38,8 @@ def main():
     isolated = tempfile.mkdtemp(prefix='ftk_tools_')
     saved_base = global_var.BASE_DIR
     saved_ucfg = global_var.USER_CONFIG_FILE
-    saved_pim = getattr(global_var, 'PACKAGE_INTEGRITY_MODE', None)
+    saved_mus_mb = getattr(global_var, 'MAX_UPLOAD_SIZE_MB', None)
+    saved_mus = getattr(global_var, 'MAX_UPLOAD_SIZE', None)
     try:
         global_var.BASE_DIR = isolated
 
@@ -54,7 +55,7 @@ def main():
         open(os.path.join(isolated, 'plugins', 'data', 'sessions.json'), 'w', encoding='utf-8').write('{}')
         open(os.path.join(isolated, 'data', 'stats.json'), 'w', encoding='utf-8').write('{}')
         open(os.path.join(isolated, 'data', 'audit.log'), 'w', encoding='utf-8').write('audit')
-        open(os.path.join(isolated, 'frontend_tools.json'), 'w', encoding='utf-8').write('[]')
+        open(os.path.join(isolated, 'data', 'frontend_tools.json'), 'w', encoding='utf-8').write('[]')
         open(os.path.join(isolated, 'logs', 'app.log'), 'w', encoding='utf-8').write('log')
         open(os.path.join(isolated, 'temp', 'x.zip'), 'w', encoding='utf-8').write('z')
 
@@ -65,7 +66,7 @@ def main():
         check('backup create 生成备份目录', os.path.isdir(dest), dest)
         check('backup create 备份 6 类内容',
               set(saved) == {'plugins/configs', 'plugins/status.json', 'plugins/data', 'data',
-                             'frontend_tools.json', 'logs'}, f"{saved}")
+                             'data/frontend_tools.json', 'logs'}, f"{saved}")
         check('backup create 内容落盘',
               os.path.exists(os.path.join(dest, 'plugins', 'configs', 'auth.json')) and
               os.path.exists(os.path.join(dest, 'data', 'audit.log')) and
@@ -109,17 +110,17 @@ def main():
         out = buf.getvalue()
         check('config show 输出标题', '配置项' in out, "")
         check('config show 含关键配置项',
-              'PACKAGE_INTEGRITY_MODE' in out and 'PACKAGE_MAX_UPLOAD_SIZE_MB' in out and 'LOG_DIR' in out, "")
+              'MAX_UPLOAD_SIZE_MB' in out and 'PACKAGE_MAX_UPLOAD_SIZE_MB' in out and 'LOG_DIR' in out, "")
 
-        ns = argparse.Namespace(key='PACKAGE_INTEGRITY_MODE', value='strict')
+        ns = argparse.Namespace(key='MAX_UPLOAD_SIZE_MB', value=50)
         with contextlib.redirect_stdout(io.StringIO()):
             cfg.cmd_set(ns)
         check('config set 写入隔离文件',
-              json.load(open(cfg.USER_CONFIG_FILE, encoding='utf-8')).get('PACKAGE_INTEGRITY_MODE') == 'strict', "")
-        check('config set 后生效值更新', getattr(global_var, 'PACKAGE_INTEGRITY_MODE', None) == 'strict',
-              f"{getattr(global_var, 'PACKAGE_INTEGRITY_MODE', None)}")
+              json.load(open(cfg.USER_CONFIG_FILE, encoding='utf-8')).get('MAX_UPLOAD_SIZE_MB') == 50, "")
+        check('config set 后生效值更新', getattr(global_var, 'MAX_UPLOAD_SIZE_MB', None) == 50,
+              f"{getattr(global_var, 'MAX_UPLOAD_SIZE_MB', None)}")
 
-        ns = argparse.Namespace(key='PACKAGE_INTEGRITY_MODE', value='bogus')
+        ns = argparse.Namespace(key='MAX_UPLOAD_SIZE_MB', value='bogus')
         try:
             with contextlib.redirect_stdout(io.StringIO()):
                 cfg.cmd_set(ns)
@@ -127,19 +128,19 @@ def main():
         except SystemExit:
             check('config set 非法值被拒（exit 1）', True, '')
 
-        ns = argparse.Namespace(key='PACKAGE_INTEGRITY_MODE')
+        ns = argparse.Namespace(key='MAX_UPLOAD_SIZE_MB')
         with contextlib.redirect_stdout(io.StringIO()):
             cfg.cmd_unset(ns)
         check('config unset 移除配置',
-              'PACKAGE_INTEGRITY_MODE' not in json.load(open(cfg.USER_CONFIG_FILE, encoding='utf-8')), "")
+              'MAX_UPLOAD_SIZE_MB' not in json.load(open(cfg.USER_CONFIG_FILE, encoding='utf-8')), "")
 
         print(f'\n==== 开发运维工具回归：共 {len(results)} 项，通过 {sum(1 for _, c, _ in results if c)}，'
               f'失败 {sum(1 for _, c, _ in results if not c)} ====')
     finally:
         global_var.BASE_DIR = saved_base
         global_var.USER_CONFIG_FILE = saved_ucfg
-        if saved_pim is not None:
-            global_var.PACKAGE_INTEGRITY_MODE = saved_pim
+        global_var.MAX_UPLOAD_SIZE_MB = saved_mus_mb
+        global_var.MAX_UPLOAD_SIZE = saved_mus
         try:
             shutil.rmtree(isolated, ignore_errors=True)
         except Exception:

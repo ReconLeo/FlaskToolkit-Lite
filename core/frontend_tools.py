@@ -12,10 +12,31 @@ logger = logging.getLogger('flask.app')
 def load_frontend_tools():
     """加载前端工具配置，增加容错处理"""
     global_var.frontend_tools.clear()
-    config_file = os.path.join(global_var.BASE_DIR, 'frontend_tools.json')
+    config_file = global_var.FRONTEND_CONFIG_FILE
 
     if not os.path.exists(config_file):
-        logger.warning("前端工具配置文件不存在，已初始化空列表", extra={'plugin': 'system'})
+        # 首次启动（data/ 清单不存在）：生成内置默认前端工具（随机密码生成器）
+        default_tool = {
+            'name': 'password_generator',
+            'title': '随机密码生成器',
+            'author': '内置',
+            'description': '纯前端随机密码生成器：长度 6-64、四类字符集、排除易混淆字符、批量生成、强度分级、一键复制，数据不上传。',
+            'category': '安全工具',
+            'version': '1.0.0',
+            'permission': 'public',
+            'require_framework_version': '',
+            'enabled': True,
+            'type': 'frontend',
+            '_heat': 0,
+        }
+        try:
+            os.makedirs(os.path.dirname(config_file), exist_ok=True)
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump([default_tool], f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.warning(f"生成默认前端工具配置失败: {e}", extra={'plugin': 'system'})
+        global_var.frontend_tools.extend([default_tool])
+        logger.info(f"已初始化内置前端工具: {default_tool['title']}", extra={'plugin': 'system'})
         return
 
     try:

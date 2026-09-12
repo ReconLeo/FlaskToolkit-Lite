@@ -60,7 +60,7 @@ python examples/install_all.py
 
 ## Documentation
 
-- [Flask Plugin Framework Development Guide](documents/Flask插件框架开发规范-v4.0.md) — plugin development, permission model, frontend-tool spec, plugin-package format, ops tools.
+- [FlaskToolkit-Lite Development Guide](documents/FlaskToolkit-Lite-Dev-Guide.md) — plugin development, permission model, frontend-tool spec, plugin-package format, ops tools.
 - [Official examples guide](examples/README.md)
 
 ## Tests

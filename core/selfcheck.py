@@ -25,7 +25,7 @@ import global_var
 
 # 框架核心文件（相对 BASE_DIR）；缺失视为致命，阻止启动
 CORE_FILES = [
-    'app.py', 'global_var.py', 'frontend_tools.json',
+    'app.py', 'global_var.py',
     'routes/__init__.py', 'routes/admin.py', 'routes/frontend.py',
     'routes/public.py', 'routes/interceptor.py', 'routes/plugin.py',
     'core/utils.py', 'core/plugin_loader.py', 'core/plugin_pack.py',

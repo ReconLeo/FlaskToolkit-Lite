@@ -502,14 +502,14 @@ my_tool.zip
 
 框架内置前端工具示例 **随机密码生成器**（`password_generator`），作为开发者参考模板：
 
-- 位置：`templates/frontend_tools/password_generator.html`，已在 `frontend_tools.json` 注册（分类：安全工具）。
+- 位置：`templates/frontend_tools/password_generator.html`，已在 `data/frontend_tools.json` 注册（分类：安全工具）。
 - 访问：`/frontend/password_generator`（首页卡片入口）。
 - 功能：密码长度 6-64、四类字符集勾选、排除易混淆字符（`0O1lI|`'".,`）、批量生成 1-10 个、密码学安全随机（`crypto.getRandomValues`）、强度分级（熵 ≥100 极强 / ≥70 强 / ≥45 中 / 否则弱）、一键复制（`navigator.clipboard` + 降级方案）。
 - 纯前端实现：**不调用任何后端 API、不上传数据**，仅本地生成，可作为不依赖后端的静态前端工具范式；若前端工具需要调用后端接口，按 6.2 引入 `plugin_common.js`。
 
 ### 6.5 前端工具访问控制（v4.2 新增）
 
-每个前端工具在 `frontend_tools.json` 中声明 `permission` 字段（`public` / `user` / `admin`），控制页面与静态资源的访问：
+每个前端工具在 `data/frontend_tools.json` 中声明 `permission` 字段（`public` / `user` / `admin`），控制页面与静态资源的访问：
 
 | 值 | 含义 |
 |------|------|
@@ -519,7 +519,7 @@ my_tool.zip
 
 - 页面路由 `/frontend/<name>` 与静态资源路由 `/frontend-static/<name>/<path>` 均做该校验（与 API 共用 `core/permission._check_permission` 统一逻辑）。
 - `auth` 插件未安装时全员放行（可选鉴权），与 API 权限模型一致。
-- 上传/更新时工具缺省 `permission=public`；`frontend_tools.json` 可声明 `permission` 覆盖（内置密码生成器已改为 `public`）。
+- 上传/更新时工具缺省 `permission=public`；`data/frontend_tools.json` 可声明 `permission` 覆盖（内置密码生成器已改为 `public`）。
 - 修改权限：管理后台「插件管理 → 前端工具」权限下拉，或调用管理接口：
 
 ```
@@ -662,7 +662,7 @@ def validate_params(self, params):
 ### 10.3 Factory Reset（恢复出厂设置）
 
 - 设计意图：将部分/全部框架数据还原至安装初始状态，**不提供自动备份**（数据丢失由用户自行承担）。
-- **此操作不可逆**：执行前请务必手动备份关键数据（`plugins/configs/`、`data/`、`frontend_tools.json` 等）。
+- **此操作不可逆**：执行前请务必手动备份关键数据（`plugins/configs/`、`data/`、`data/frontend_tools.json` 等）。
 - 管理后台重置弹窗已内置「不可撤销、请先备份」的风险提示，确认后才会执行。
 - 内置插件（`auth`）在重置中受保护不被删除；`all` 范围会重置其配置（auth 恢复默认 `admin/admin123`）。
 
@@ -793,7 +793,7 @@ python tools/config.py env                  # 生成环境变量示例
 | `DEBUG` | false | 调试模式（FLASKTOOLKIT_DEBUG 优先） |
 | `UPLOAD_TEMP_DIR` | BASE_DIR/temp | 上传临时目录 |
 | `FRONTEND_TEMPLATE_DIR` | BASE_DIR/templates/frontend_tools | 前端工具模板/静态资源目录 |
-| `FRONTEND_CONFIG_FILE` | BASE_DIR/frontend_tools.json | 前端工具注册配置文件 |
+| `FRONTEND_CONFIG_FILE` | BASE_DIR/data/frontend_tools.json | 前端工具注册配置文件 |
 | `PLUGIN_CONFIGS_DIR` | BASE_DIR/plugins/configs | 插件配置目录 |
 | `PLUGIN_TEMP_DIR` | BASE_DIR/plugins/temp | 插件临时目录 |
 | `PLUGIN_CACHE_DIR` | BASE_DIR/.plugin_cache | 插件扫描缓存目录 |
@@ -813,6 +813,15 @@ python tools/config.py set DEBUG true
 ```
 
 ## 十四、开发运维工具与启动自检
+
+开发运维命令行工具统一放在 `tools/`，以 `python tools/<脚本>.py` 运行。配置管理 `tools/config.py` 详见**第 13 章**，打包 `tools/package.py` 详见 **10.4**，本章补充备份 / 深度重置工具与启动自检：
+
+| 工具 | 用途 | 章节 |
+|------|------|------|
+| `tools/config.py` | 配置管理（show/set/unset/reset/check/env） | 13 章 |
+| `tools/package.py` | 插件/前端工具打包与查看（pack/show） | 10.4 |
+| `tools/backup.py` | 手动备份 / 恢复 | 14.2 |
+| `tools/reset.py` | 深度重置（服务停止时） | 14.3 |
 
 ### 14.1 启动完整性自检（core/selfcheck.py）
 
@@ -838,7 +847,7 @@ python tools/backup.py info <名称>        # 查看某备份内容
 python tools/backup.py restore <名称>     # 恢复备份到项目（覆盖式）
 ```
 
-备份内容：`plugins/configs`、`plugins/status.json`、`plugins/data`、`data`（统计/用户配置）、`frontend_tools.json`、`logs`。
+备份内容：`plugins/configs`、`plugins/status.json`、`plugins/data`、`data`（统计/用户配置）、`data/frontend_tools.json`、`logs`。
 
 ### 14.3 深度重置（tools/reset.py）
 

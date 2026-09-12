@@ -14,7 +14,6 @@
 
 示例：
   python tools/config.py set PACKAGE_MAX_UPLOAD_SIZE_MB 20
-  python tools/config.py set PACKAGE_INTEGRITY_MODE strict
   python tools/config.py set LOG_DIR D:/logs/ftk
   python tools/config.py set HOST 0.0.0.0
   python tools/config.py set PORT 8080

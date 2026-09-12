@@ -59,7 +59,7 @@ check('static js 200', js.status_code == 200, f'实际{js.status_code}')
 oldjs = s.get(BASE + '/frontend-static/demo_tool/js/old.js')
 check('v1 旧文件 old.js 200', oldjs.status_code == 200, f'实际{oldjs.status_code}')
 
-cfg = json.load(open(_PROJECT_ROOT + '/frontend_tools.json', encoding='utf-8'))
+cfg = json.load(open(_PROJECT_ROOT + '/data/frontend_tools.json', encoding='utf-8'))
 check('配置含 demo_tool', any(t['name'] == 'demo_tool' and t['version'] == '1.0.0' for t in cfg))
 
 # ============ 链路 2：更新 v1.0.1 ============
@@ -80,7 +80,7 @@ check('更新后 css 含 v2-badge 样式', '.v2-badge' in css2.text)
 oldjs2 = s.get(BASE + '/frontend-static/demo_tool/js/old.js')
 check('更新后旧文件 old.js 404（已清理）', oldjs2.status_code == 404, f'实际{oldjs2.status_code}')
 
-cfg = json.load(open(_PROJECT_ROOT + '/frontend_tools.json', encoding='utf-8'))
+cfg = json.load(open(_PROJECT_ROOT + '/data/frontend_tools.json', encoding='utf-8'))
 demo = next((t for t in cfg if t['name'] == 'demo_tool'), None)
 check('配置版本更新为 1.0.1', demo and demo['version'] == '1.0.1')
 
@@ -100,7 +100,7 @@ static_dir_exist = os.path.isdir(_PROJECT_ROOT + '/templates/frontend_tools/stat
 check('html 文件已删除', not html_exist)
 check('static 目录已删除', not static_dir_exist)
 
-cfg = json.load(open(_PROJECT_ROOT + '/frontend_tools.json', encoding='utf-8'))
+cfg = json.load(open(_PROJECT_ROOT + '/data/frontend_tools.json', encoding='utf-8'))
 check('配置已移除 demo_tool', not any(t['name'] == 'demo_tool' for t in cfg))
 print('\n配置剩余工具:', [t['name'] for t in cfg])
 print('\n===== 全链路验证完成 =====')

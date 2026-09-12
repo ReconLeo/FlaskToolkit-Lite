@@ -16,7 +16,7 @@ STATS_FILE = os.path.join(BASE_DIR, 'data', 'stats.json')  # 统计数据文件�
 # 前端工具上传临时目录
 UPLOAD_TEMP_DIR = os.path.join(BASE_DIR, 'temp')
 FRONTEND_TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates', 'frontend_tools')
-FRONTEND_CONFIG_FILE = os.path.join(BASE_DIR, 'frontend_tools.json')
+FRONTEND_CONFIG_FILE = os.path.join(BASE_DIR, 'data', 'frontend_tools.json')
 # 后端插件目录
 PLUGIN_CONFIGS_DIR = os.path.join(BASE_DIR, 'plugins', 'configs')  # 配置目录
 PLUGIN_TEMP_DIR = os.path.join(BASE_DIR, 'plugins', 'temp')  # 临时文件夹
@@ -39,11 +39,6 @@ PACKAGE_MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
 # 全局文件上传大小上限（单位字节）：MAX_CONTENT_LENGTH 兜底，插件可用 max_upload_size 覆盖更严/更宽限制
 MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 100MB
 MAX_UPLOAD_SIZE_MB = 100  # 全局默认上传上限（MB，用户可配置）
-# 插件包完整性校验模式：strict（缺 manifest/失败均拒绝）/ warn（缺 manifest 告警放行，有则严格校验）/ off（跳过）
-PACKAGE_INTEGRITY_MODE = 'warn'
-# 可选：插件包签名公钥 PEM 文件路径。配置后安装带 signature 的包时强制验证签名；不配置则跳过签名验证
-PLUGIN_PUBLIC_KEY_PEM = ''
-
 # ------------------------------ 用户可配置项（由 CLI 工具 tools/config.py 管理） ------------------------------
 # key -> {default, kind, desc}
 # kind: path(路径) / str / int / bool / enum(choices)
@@ -52,7 +47,7 @@ CONFIG_ITEMS = {
                         'desc': '前端工具上传临时目录'},
     'FRONTEND_TEMPLATE_DIR': {'default': os.path.join(BASE_DIR, 'templates', 'frontend_tools'), 'kind': 'path',
                               'desc': '前端工具模板/静态资源目录'},
-    'FRONTEND_CONFIG_FILE': {'default': os.path.join(BASE_DIR, 'frontend_tools.json'), 'kind': 'path',
+    'FRONTEND_CONFIG_FILE': {'default': os.path.join(BASE_DIR, 'data', 'frontend_tools.json'), 'kind': 'path',
                              'desc': '前端工具注册配置文件'},
     'PLUGIN_CONFIGS_DIR': {'default': os.path.join(BASE_DIR, 'plugins', 'configs'), 'kind': 'path',
                            'desc': '插件配置目录'},
@@ -69,11 +64,6 @@ CONFIG_ITEMS = {
                            'desc': '全局文件上传大小上限（MB，映射 MAX_UPLOAD_SIZE，MAX_CONTENT_LENGTH 兜底）'},
     'PLUGIN_STRICT_MODE': {'default': False, 'kind': 'bool',
                            'desc': '严格模式：on_load 依赖检查降级由 on_ready 钩子延后（所有插件加载完成后执行）'},
-    'PACKAGE_INTEGRITY_MODE': {'default': 'warn', 'kind': 'enum',
-                               'choices': ['strict', 'warn', 'off'],
-                               'desc': '插件包完整性校验模式'},
-    'PLUGIN_PUBLIC_KEY_PEM': {'default': '', 'kind': 'path',
-                              'desc': '插件签名公钥 PEM 文件路径（配置后强制验签）'},
     'HOST': {'default': '127.0.0.1', 'kind': 'str', 'desc': '服务绑定地址（环境变量 FLASKTOOLKIT_HOST 优先）'},
     'PORT': {'default': '', 'kind': 'int', 'desc': '服务端口（留空自动探测，环境变量 FLASKTOOLKIT_PORT 优先）'},
     'DEBUG': {'default': False, 'kind': 'bool',
