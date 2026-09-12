@@ -29,6 +29,9 @@ LOG_DIR = os.path.join(BASE_DIR, 'logs')
 
 # ------------------------------ 全局常量 ------------------------------
 FRAMEWORK_VERSION = "4.2.2"  # 框架版本（后端插件 require_framework_version 比较基准）
+# 定时任务调度器时区：app.py 创建 BackgroundScheduler 与 selfcheck 时区探测共用同一来源
+# （Windows 平台标准库 zoneinfo 依赖 tzdata 包提供 IANA 时区库，requirements.txt 已包含 tzdata==2026.3）
+TIMEZONE = "Asia/Shanghai"
 # 内置（系统自带）插件清单：Factory Reset 时受保护不删除
 BUILTIN_PLUGINS = ('auth',)
 # 管理后台上传包大小上限（后端插件包 .zip / 前端工具包 .zip 统一限制，单位字节）
