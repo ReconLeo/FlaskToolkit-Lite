@@ -64,17 +64,15 @@ jobs:
             python tests/ci_cleanup.py
           done
 
-      - name: 打包/签名工具端到端（genkey → pack → verify）
+      - name: 打包工具端到端（pack → show）
         run: |
           set -e
-          python tools/package.py genkey -o /tmp/ci_key.pem --pub /tmp/ci_key_pub.pem
           mkdir -p /tmp/ci_tool/static/css
           echo 'body{}' > /tmp/ci_tool/static/css/x.css
           echo '<html>ci</html>' > /tmp/ci_tool/ci_tool.html
           printf '{"name":"ci_tool","version":"1.0.0","category":"测试"}' > /tmp/ci_tool/config.json
-          python tools/package.py pack /tmp/ci_tool -o /tmp/ci_tool.zip --type frontend \
-            --sign /tmp/ci_key.pem --signer "CI"
-          python tools/package.py verify /tmp/ci_tool.zip --public-key /tmp/ci_key_pub.pem
+          python tools/package.py pack /tmp/ci_tool -o /tmp/ci_tool.zip --type frontend
+          python tools/package.py show /tmp/ci_tool.zip
 
       - name: 上传失败日志（测试失败时）
         if: failure()

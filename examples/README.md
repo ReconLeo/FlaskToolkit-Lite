@@ -162,4 +162,4 @@ examples/
 
 - 示例安装会写入真实项目运行时目录（`plugins/`、`templates/`、`frontend_tools.json`），卸载后清理。若要测试隔离环境，请使用临时副本或先备份。
 - `dependent_demo` 依赖 `auth` 插件；`scheduler_demo` 的心跳数据持久化在 `data/scheduler_demo.json`，重启服务后保留。
-- 想自己打包插件？直接复制某个示例目录，修改 `plugin.json` 与主文件后，用 `python tools/package.py pack <目录> -o xxx.zip --type backend|frontend` 打包（支持 `--sign` 签名）。
+- 想自己打包插件？直接复制某个示例目录，修改 `plugin.json` 与主文件后，用 `python tools/package.py pack <目录> -o xxx.zip --type backend|frontend` 打包。
