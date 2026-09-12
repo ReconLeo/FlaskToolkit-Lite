@@ -22,6 +22,7 @@
 - **热重载**：文件监听自动增量重载插件与前端工具，无需重启服务。
 - **定时任务**：插件可声明 `scheduled_tasks`，框架自动注册到调度器（Asia/Shanghai 时区）。
 - **统计与日志**：API 调用统计、前端工具访问统计自动累积；分级日志落盘。
+- **启动横幅与更新检查**：启动时控制台显示框架名/版本/作者/服务地址；后台检查本仓库新版本并提示（仅提示不下载，可经 `UPDATE_CHECK_ENABLED` 关闭）。
 
 ---
 
@@ -802,6 +803,7 @@ python tools/config.py env                  # 生成环境变量示例
 | `PACKAGE_MAX_UPLOAD_SIZE_MB` | 10 | 插件包/工具包上传大小上限（MB） |
 | `MAX_UPLOAD_SIZE_MB` | 100 | 全局文件上传上限（MB，映射 MAX_UPLOAD_SIZE，MAX_CONTENT_LENGTH 兜底） |
 | `PLUGIN_STRICT_MODE` | false | 严格模式：依赖检查延后到 on_ready（见 v4.2.2） |
+| `UPDATE_CHECK_ENABLED`       | true                              | 启动时后台检查新版本并控制台提示（固定本仓库 changelog，离线/失败静默） |
 
 示例：
 

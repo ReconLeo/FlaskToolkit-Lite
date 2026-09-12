@@ -18,6 +18,7 @@ A Flask-based **plugin framework** for running scattered Python plugins and pure
 - **Admin panel** — dashboard / plugin management / system info & reset.
 - **Unified file transfer** — global upload ceiling (per-route overridable), Chinese-safe downloads (RFC 5987), download stats & Range.
 - **Factory Reset / backup / restore / startup self-check**, plus a 309-assertion regression suite and GitHub Actions CI.
+- **Startup banner & update check** — console shows framework name / version / author / address and checks for new releases against the project feed (prompt-only, no auto-download; toggle via `UPDATE_CHECK_ENABLED`).
 
 ## Quick Start
 

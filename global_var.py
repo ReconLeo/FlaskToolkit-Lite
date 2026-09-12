@@ -34,6 +34,10 @@ FRAMEWORK_VERSION = "4.2.2"  # 框架版本（后端插件 require_framework_ver
 TIMEZONE = "Asia/Shanghai"
 # 内置（系统自带）插件清单：Factory Reset 时受保护不删除
 BUILTIN_PLUGINS = ('auth',)
+# 项目标识（启动横幅 / 检查更新提示用）
+PROJECT_NAME = "FlaskToolkit-Lite"  # 项目名称
+PROJECT_AUTHOR = "ReconLeo"  # 作者/维护者
+PROJECT_GITHUB = "https://github.com/ReconLeo/FlaskToolkit-Lite"  # GitHub 仓库地址（public）
 # 管理后台上传包大小上限（后端插件包 .zip / 前端工具包 .zip 统一限制，单位字节）
 PACKAGE_MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
 # 全局文件上传大小上限（单位字节）：MAX_CONTENT_LENGTH 兜底，插件可用 max_upload_size 覆盖更严/更宽限制
@@ -64,6 +68,8 @@ CONFIG_ITEMS = {
                            'desc': '全局文件上传大小上限（MB，映射 MAX_UPLOAD_SIZE，MAX_CONTENT_LENGTH 兜底）'},
     'PLUGIN_STRICT_MODE': {'default': False, 'kind': 'bool',
                            'desc': '严格模式：on_load 依赖检查降级由 on_ready 钩子延后（所有插件加载完成后执行）'},
+    'UPDATE_CHECK_ENABLED': {'default': True, 'kind': 'bool',
+                              'desc': '启动时后台检查新版本并在控制台提示（固定本仓库 changelog，离线/失败静默）'},
     'HOST': {'default': '127.0.0.1', 'kind': 'str', 'desc': '服务绑定地址（环境变量 FLASKTOOLKIT_HOST 优先）'},
     'PORT': {'default': '', 'kind': 'int', 'desc': '服务端口（留空自动探测，环境变量 FLASKTOOLKIT_PORT 优先）'},
     'DEBUG': {'default': False, 'kind': 'bool',

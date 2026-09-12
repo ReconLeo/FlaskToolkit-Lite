@@ -149,10 +149,26 @@ if __name__ == '__main__':
     debug_mode = (_dbg_env in ('1', 'true', 'yes', 'on')) if _dbg_env else bool(_ucfg.get('DEBUG'))
     app.debug = debug_mode  # 同步 app.debug，影响模板自动重载等
     app.logger.info(f"服务启动地址: http://{host}:{port} (debug={debug_mode})", extra={'plugin': 'system'})
+    # ===== 启动横幅（项目信息 + 版本 + 服务地址）=====
+    print('-' * 60, flush=True)
+    print(f"  {global_var.PROJECT_NAME}  v{global_var.FRAMEWORK_VERSION}", flush=True)
+    print(f"  框架版本: v{global_var.FRAMEWORK_VERSION}   作者: {global_var.PROJECT_AUTHOR}", flush=True)
+    print(f"  GitHub: {global_var.PROJECT_GITHUB}", flush=True)
+    print(f"  服务地址: http://{host}:{port}  (debug={debug_mode})", flush=True)
+    print('-' * 60, flush=True)
 
     # 把初始化后的app回写到global模块（确保其他地方导入的是同一个实例）
     import global_var
     global_var.app = app
+
+    # ===== 检查更新（后台线程，控制台提示；不支持下载 / 更新源修改）=====
+    if bool(_ucfg.get('UPDATE_CHECK_ENABLED', True)):
+        try:
+            import threading
+            from core.update_checker import background_check
+            threading.Thread(target=background_check, daemon=True, name='update-check').start()
+        except Exception:
+            pass  # 检查更新失败不影响启动
 
     try:
         app.run(host=host, port=port, debug=debug_mode, use_reloader=False)

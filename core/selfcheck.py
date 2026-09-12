@@ -31,7 +31,7 @@ CORE_FILES = [
     'core/utils.py', 'core/plugin_loader.py', 'core/plugin_pack.py',
     'core/factory_reset.py',
     'core/permission.py', 'core/stats.py', 'core/logging_setup.py',
-    'core/frontend_tools.py', 'core/watcher.py', 'core/selfcheck.py',
+    'core/frontend_tools.py', 'core/watcher.py', 'core/selfcheck.py', 'core/update_checker.py',
     'plugins/__init__.py', 'plugins/base_plugin.py',
     'plugins/auth.py',
 ]
