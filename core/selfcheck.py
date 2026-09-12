@@ -29,11 +29,11 @@ CORE_FILES = [
     'routes/__init__.py', 'routes/admin.py', 'routes/frontend.py',
     'routes/public.py', 'routes/interceptor.py', 'routes/plugin.py',
     'core/utils.py', 'core/plugin_loader.py', 'core/plugin_pack.py',
-    'core/factory_reset.py', 'core/audit.py', 'core/package_sign.py',
+    'core/factory_reset.py',
     'core/permission.py', 'core/stats.py', 'core/logging_setup.py',
     'core/frontend_tools.py', 'core/watcher.py', 'core/selfcheck.py',
     'plugins/__init__.py', 'plugins/base_plugin.py',
-    'plugins/auth.py', 'plugins/user_manage.py',
+    'plugins/auth.py',
 ]
 
 # 核心目录（缺失视为致命）

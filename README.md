@@ -10,8 +10,6 @@
 > A Flask-based plugin **framework**: bring scattered Python plugins and pure-frontend tools into one unified runtime —
 > dynamically installable, hot-reloadable, permission-controlled. Self-written, self-maintained, runs only on your own machine.
 
-> **English**: this page · **中文**：[中文](README.zh-CN.md)
-
 ## Why FlaskToolkit (Author's Story)
 
 I have written a lot of "little things": sign-in scripts, scheduled tasks, file handlers, chart pages… Most are in Python, many are Flask pages with the frontend and backend in one, and quite a few are pure-frontend HTML. Each works well on its own, but they are scattered across folders — every time I wanted to add a feature, I had to reinvent login/auth, upload/download, page skeletons, and scheduled jobs from scratch.
@@ -58,7 +56,7 @@ On first run, install the built-in `auth` plugin to enable auth; default admin a
 Want to feel the fun of "installing plugins" right away? Install the official examples:
 
 ```bash
-pip install -r requirements.txt -r requirements-dev.txt   # install_all.py needs requests
+pip install -r requirements.txt   # install_all.py needs requests
 python examples/install_all.py                            # install all 6 official examples
 ```
 
@@ -90,12 +88,10 @@ See [examples/README.md](examples/README.md).
 Detailed specs live in the [Flask Plugin Framework Development Guide](documents/Flask插件框架开发规范-v4.0.md) (plugin development, permission model, frontend-tool spec, plugin-package format, security design, ops tools):
 
 - [Official examples guide](examples/README.md)
-- [Flask Plugin Framework Roadmap](documents/Flask插件框架-Roadmap-v4.1.md)
-- [GitHub Actions setup & open-source publishing guide](documents/GitHub-Actions-上手与开源发布指南.md)
 
 ## Tests & CI
 
-`tests/` contains **18 scripts / 331 assertions** of regression tests (isolated-directory mode, no pollution of project files); GitHub Actions runs them automatically on Python 3.10 / 3.11 / 3.12, covering permissions, plugin-package / frontend-tool chains, integrity signatures, uninstall manifests, Factory Reset, large-plugin multi-template page routing, file transfer (upload limits / Chinese-name downloads / Range), ops tools, etc.
+`tests/` contains **18 scripts / 331 assertions** of regression tests (isolated-directory mode, no pollution of project files); GitHub Actions runs them automatically on Python 3.10 / 3.11 / 3.12, covering permissions, plugin-package / frontend-tool chains, uninstall manifests, Factory Reset, large-plugin multi-template page routing, file transfer (upload limits / Chinese-name downloads / Range), ops tools, etc.
 
 <details>
 <summary>Expand: 18 test scripts</summary>
@@ -113,7 +109,6 @@ python tests/test_frontend_chain.py        # frontend-tool chain end-to-end 23
 python tests/test_admin_api.py             # admin API 21
 python tests/test_factory_reset.py         # Factory Reset scope 37
 python tests/test_error_pages.py           # error-code pages 12
-python tests/test_package_sign.py          # integrity verification / signing 22
 python tests/test_plugin_cleanup.py        # uninstall installed_files manifest 23
 python tests/test_frontend_permission.py   # frontend-tool access control 25
 python tests/test_tools_ops.py             # ops tools backup/reset/config 19
@@ -133,7 +128,7 @@ python tests/test_file_transfer.py         # file transfer: global 413 / plugin 
 
 ## License & Contributing
 
-MIT License · contribution guidelines in [CONTRIBUTING.md](CONTRIBUTING.md) · AI-assisted development was used; see the statement below.
+MIT License · AI-assisted development was used; see the statement below.
 
 ### AI-Assisted Development Statement
 
@@ -142,7 +137,7 @@ This project used AI-assisted programming tools during development, including bu
 Transparency conventions for contributors:
 
 - Using AI-assisted tools is allowed, but you are fully responsible for the **correctness, security, and compliance** of your submitted code.
-- AI-generated code must pass the project's regression tests and code review (see `CONTRIBUTING.md`).
+- AI-generated code must pass the project's regression tests and code review.
 - If a PR relies heavily on AI-generated content, please note it in the PR description to help maintainers review.
 
 ## Star History

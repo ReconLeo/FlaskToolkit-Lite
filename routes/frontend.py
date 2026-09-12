@@ -12,10 +12,8 @@ from flask import jsonify, render_template, request, send_from_directory
 import global_var
 from core.frontend_tools import load_frontend_tools
 from core.permission import _check_permission, admin_api
-from core.package_sign import verify_package
 from core.plugin_pack import compare_versions
 from core.stats import increment_frontend_access, save_stats
-from core.audit import log_audit
 from core.utils import check_upload_size, secure_filename_cn
 
 logger = logging.getLogger('flask.app')
@@ -171,12 +169,6 @@ def register(app):
         file.save(temp_path)
 
         try:
-            # 完整性校验（P2-4 方案C）
-            vres = verify_package(temp_path, 'frontend')
-            if not vres['ok']:
-                return jsonify({"code": 400, "message": vres['message']}), 400
-            if vres.get('warn_only'):
-                logger.warning(vres['message'], extra={'plugin': 'system'})
             # 解压校验
             with zipfile.ZipFile(temp_path, 'r') as zf:
                 # 检查是否存在config.json
@@ -241,7 +233,6 @@ def register(app):
                     json.dump(global_var.frontend_tools, f, ensure_ascii=False, indent=2)
 
                 logger.info(f"已上传前端工具: {tool_name} v{config['version']}", extra={'plugin': 'system'})
-                log_audit('前端工具安装', tool_name, 'ok', f"v{config['version']} 来源 {temp_filename}")
                 return jsonify({"code": 200, "message": "工具上传成功", "data": config})
 
         except zipfile.BadZipFile:
@@ -285,12 +276,6 @@ def register(app):
         file.save(temp_path)
 
         try:
-            # 完整性校验（P2-4 方案C）
-            vres = verify_package(temp_path, 'frontend')
-            if not vres['ok']:
-                return jsonify({"code": 400, "message": vres['message']}), 400
-            if vres.get('warn_only'):
-                logger.warning(vres['message'], extra={'plugin': 'system'})
             with zipfile.ZipFile(temp_path, 'r') as zf:
                 if 'config.json' not in zf.namelist():
                     return jsonify({"code": 400, "message": "更新包缺少config.json配置文件"}), 400
@@ -351,7 +336,6 @@ def register(app):
                     json.dump(global_var.frontend_tools, f, ensure_ascii=False, indent=2)
 
                 logger.info(f"已更新前端工具: {tool_name} 从v{current_tool['version']}到v{config['version']}", extra={'plugin': 'system'})
-                log_audit('前端工具更新', tool_name, 'ok', f"v{current_tool['version']}→v{config['version']} 来源 {temp_filename}")
                 return jsonify({"code": 200, "message": "工具更新成功"})
 
         finally:
@@ -385,7 +369,6 @@ def register(app):
             json.dump(global_var.frontend_tools, f, ensure_ascii=False, indent=2)
 
         logger.info(f"已卸载前端工具: {tool_name}", extra={'plugin': 'system'})
-        log_audit('前端工具卸载', tool_name, 'ok')
         return jsonify({"code": 200, "message": "工具卸载成功"})
 
     # 新增前端工具状态管理
@@ -424,7 +407,6 @@ def register(app):
         load_frontend_tools()
 
         logger.info(f"已启用前端工具: {tool_name}", extra={'plugin': 'system'})
-        log_audit('前端工具启用', tool_name, 'ok')
         return jsonify({"code": 200, "message": f"前端工具 {tool_name} 已启用"})
 
     @app.route('/api/admin/frontend/<tool_name>/disable', methods=['POST'])
@@ -462,7 +444,6 @@ def register(app):
         load_frontend_tools()
 
         logger.info(f"已禁用前端工具: {tool_name}", extra={'plugin': 'system'})
-        log_audit('前端工具禁用', tool_name, 'ok')
         return jsonify({"code": 200, "message": f"前端工具 {tool_name} 已禁用"})
 
     @app.route('/api/admin/frontend/<tool_name>/permission', methods=['POST'])
@@ -502,5 +483,4 @@ def register(app):
         load_frontend_tools()
 
         logger.info(f"已修改前端工具权限: {tool_name} -> {new_permission}", extra={'plugin': 'system'})
-        log_audit('前端工具权限修改', tool_name, 'ok', f"permission={new_permission}")
         return jsonify({"code": 200, "message": f"前端工具 {tool_name} 权限已更新为 {new_permission}"})

@@ -18,7 +18,7 @@
 前置：启动服务并确认管理员账号（默认 `admin / admin123`），安装 `requests`：
 
 ```bash
-pip install -r requirements.txt -r requirements-dev.txt
+pip install -r requirements.txt
 python app.py                      # 启动服务（另开一个终端）
 ```
 

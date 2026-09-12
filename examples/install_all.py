@@ -17,7 +17,7 @@ FlaskToolkit 官方示例一键安装 / 卸载 / 打包脚本
 
 说明：
 - 通过框架正式 API 安装（登录 → CSRF → 上传 zip），走完整安装链路（溯源/审计）。
-- 安装依赖 requests（见 requirements-dev.txt）。
+- 安装依赖 requests（见 requirements.txt）。
 - 后端插件 dependent_demo 依赖 auth 插件，auth 未安装时该插件会被拒绝安装。
 """
 import argparse
@@ -30,7 +30,7 @@ import zipfile
 try:
     import requests
 except ImportError:
-    print("缺少 requests，请先安装：pip install -r requirements.txt -r requirements-dev.txt")
+    print("缺少 requests，请先安装：pip install -r requirements.txt")
     sys.exit(1)
 
 EXAMPLES_DIR = os.path.dirname(os.path.abspath(__file__))

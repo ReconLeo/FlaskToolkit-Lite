@@ -9,7 +9,7 @@ _sys.path.insert(0, _PROJECT_ROOT)
 
 覆盖：
 - /api/admin/system/info 字段完整性（framework_version / builtin_plugins / base_dir 等）
-- /api/admin/plugins、/api/admin/stats、/api/admin/logs（含非法 level 回退）
+- /api/admin/plugins
 - /api/admin/factory-reset scope 校验（空列表 400 / 非法 scope 无副作用 / 非法 JSON 容错）
 - 插件包上传：非 zip 400、缺文件 400、超大包 413（P0-1 上传大小限制落地验证）
 - core.utils.check_upload_size 单元：超限返回大小 / 未超限 0 / 不可 seek 0
@@ -89,8 +89,8 @@ def main():
     check('system/info 返回 200', r.status_code == 200, f'status={r.status_code}')
     check('system/info framework_version=4.2.2',
           data.get('framework_version') == '4.2.2', f"{data.get('framework_version')}")
-    check('system/info builtin_plugins 含 auth/user_manage',
-          set(data.get('builtin_plugins', [])) == {'auth', 'user_manage'},
+    check('system/info builtin_plugins 含 auth',
+          set(data.get('builtin_plugins', [])) == {'auth'},
           f"{data.get('builtin_plugins')}")
     check('system/info base_dir=隔离目录',
           data.get('base_dir') == _isolated, f"{data.get('base_dir')}")
@@ -104,19 +104,7 @@ def main():
           r.status_code == 200 and isinstance(r.get_json().get('data'), list),
           f'status={r.status_code}')
 
-    # 3. stats
-    r = client.get('/api/admin/stats')
-    check('stats 200', r.status_code == 200, f'status={r.status_code}')
-
-    # 4. logs
-    r = client.get('/api/admin/logs?level=info')
-    check('logs 200（隔离空日志 → data 空列表）',
-          r.status_code == 200 and r.get_json().get('data') == [],
-          f'status={r.status_code} data={r.get_json().get("data")}')
-    r = client.get('/api/admin/logs?level=bogus&lines=abc')
-    check('logs 非法 level/lines 容错不 500', r.status_code == 200, f'status={r.status_code}')
-
-    # 5. factory-reset scope 校验
+    # 3. factory-reset scope 校验
     r = client.post('/api/admin/factory-reset', json={'scope': []})
     check('factory-reset 空 scope 列表 → 400',
           r.status_code == 400, f'status={r.status_code}')

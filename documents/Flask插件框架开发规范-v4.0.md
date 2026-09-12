@@ -75,7 +75,6 @@ FlaskToolkit/
 ├── app.py                     # 入口：初始化、加载用户配置与启动自检、register_routes(app)、关闭钩子
 ├── global_var.py              # 纯路径常量 + 共享状态 + 用户配置（CONFIG_ITEMS / load_user_config）
 ├── requirements.txt           # 运行依赖（版本锁定）
-├── requirements-dev.txt       # 开发/测试依赖
 ├── core/                      # 服务层（不依赖 app 实例）
 │   ├── permission.py          #   统一权限体系（@permission 解析 / 三层校验 / CSRF 双提交）
 │   ├── plugin_loader.py       #   插件加载器（依赖校验 / 拓扑排序 / 按序加载）
@@ -85,8 +84,6 @@ FlaskToolkit/
 │   ├── watcher.py             #   文件监听（增量缓存 + 热重载）
 │   ├── frontend_tools.py      #   前端工具配置加载
 │   ├── stats.py               #   调用统计读写
-│   ├── audit.py               #   审计日志（JSONL 追加 data/audit.log）
-│   ├── package_sign.py        #   插件包完整性校验（manifest 哈希清单 + RSA 签名）
 │   ├── factory_reset.py       #   工厂重置（部分/全部 scope）
 │   ├── selfcheck.py           #   启动完整性自检
 │   ├── logging_setup.py       #   日志配置 + 插件日志适配器
@@ -100,14 +97,13 @@ FlaskToolkit/
 ├── plugins/                   # 插件目录
 │   ├── base_plugin.py         #   插件基类 + @permission 装饰器 + 生命周期钩子
 │   ├── auth.py                #   可选鉴权插件（PBKDF2 / HttpOnly Cookie + CSRF）
-│   └── user_manage.py         #   内置用户管理插件（BUILTIN，受 Factory Reset 保护）
 ├── examples/                  # 官方示例插件/工具包（6 个）+ install_all.py 一键安装
 ├── tools/                     # 开发运维命令行工具（python tools/xxx.py）
 │   ├── config.py              #   配置管理 CLI（show/set/unset/reset/check/env）
-│   ├── package.py             #   插件包打包/签名/校验 CLI（genkey/pack/verify/show）
+│   ├── package.py             #   插件包打包/查看 CLI（pack/show）
 │   ├── backup.py              #   手动备份/恢复工具（Factory Reset 前备份关键数据）
 │   └── reset.py               #   深度重置工具（服务停止时使用，绕过运行时文件锁定）
-├── tests/                     # 回归测试套件（18 脚本 331 项 + 端到端链路验证）
+├── tests/                     # 回归测试套件（17 脚本 309 项 + 端到端链路验证）
 ├── templates/                 # 页面模板（首页/登录/错误码页 400-500/admin 管理后台/插件页）
 │   ├── admin/                 #   管理后台（dashboard / plugins / logs / stats / system）
 │   ├── frontend_tools/        #   前端工具模板
@@ -116,9 +112,8 @@ FlaskToolkit/
 ├── .github/workflows/ci.yml   # GitHub Actions CI 工作流
 ├── data/                      # 运行时数据（统计/审计/用户配置，已 gitignore）
 ├── logs/                      # 运行日志（已 gitignore）
-├── documents/                 # 开发规范 / Roadmap / CI 上手指南
+├── documents/                 # 开发规范 / Lite 定位
 ├── LICENSE                    # MIT 许可
-├── CONTRIBUTING.md            # 贡献指南
 └── .gitignore                 # 运行时数据与归档文档忽略规则
 ```
 
@@ -718,47 +713,31 @@ def validate_params(self, params):
 - 管理后台重置弹窗已内置「不可撤销、请先备份」的风险提示，确认后才会执行。
 - 内置插件（`auth`、`user_manage`）在重置中受保护不被删除；`all` 范围会重置其配置（auth 恢复默认 `admin/admin123`）。
 
-### 10.4 插件包完整性校验与签名（方案C）
+### 10.4 插件包打包与清单（manifest）
 
-`manifest.json`（可选但强烈推荐，位于包根目录）记录包内全部成员的 sha256，随包分发：
+`tools/package.py pack` 打包插件/前端工具目录为可安装 .zip，并自动生成包根目录的 `manifest.json`，记录包内全部成员（除清单自身）的 sha256，作为包的完整性描述：
 
 ```json
 {
     "schema_version": "1.0",
     "package_type": "backend",
-    "files": {"plugin.json": "sha256...", "my_plugin.py": "sha256...", "static/css/x.css": "..."},
-    "signature": {"algorithm": "RSA-SHA256", "value": "base64...", "signer": "张三"}
+    "files": {"plugin.json": "sha256...", "my_plugin.py": "sha256...", "static/css/x.css": "..."}
 }
 ```
 
-- **完整性**：安装时对包内除 manifest 外的全部成员逐文件比对哈希，防篡改/损坏/zip slip 错位/加料（包内出现未列清单的文件同样拒绝）。
-- **签名（可选）**：打包者用 RSA 私钥对清单摘要签名；框架配置公钥后验证签名，构成「内容未变 + 清单可信」的强校验。
+- 包结构（backend）：`plugin.json` + 主 .py + 可选 `templates/static` + `manifest.json`
+- 包结构（frontend）：`config.json` + 入口 .html + 可选 `static/` + `manifest.json`
 
-**校验模式** `global_var.PACKAGE_INTEGRITY_MODE`：
-- `strict`：缺 manifest 或校验失败 → 拒绝安装（强制所有包带清单）
-- `warn`（默认）：缺 manifest 仅告警放行（兼容旧包）；有 manifest 则严格校验
-- `off`：跳过校验
-
-**签名公钥**：配置 `global_var.PLUGIN_PUBLIC_KEY_PEM`（公钥 PEM 文件路径）后，安装带 `signature` 的包时强制验证签名，失败拒绝；未配置公钥则跳过签名验证（仍做完整性校验）。
-
-**命令行工具** `tools/package.py`（打包/签名/校验一体）：
+**命令行**：
 
 ```bash
-# 1. 生成密钥对（仅需签名时）
-python tools/package.py genkey -o private.pem --pub public.pem
-
-# 2. 打包（自动生成 manifest.json；--sign 用私钥签名）
-python tools/package.py pack ./demo_tool -o demo_tool.zip --type frontend
-python tools/package.py pack ./my_plugin -o my_plugin.zip --type backend --sign private.pem --signer "张三"
-
-# 3. 校验（完整性 + 可选签名）
-python tools/package.py verify my_plugin.zip --public-key public.pem
-
-# 4. 查看包内容与清单状态
+# 打包（自动生成 manifest.json）
+python tools/package.py pack ./my_plugin -o my_plugin.zip --type backend
+# 查看包内容与清单状态
 python tools/package.py show my_plugin.zip
 ```
 
-发布者将公钥分发给框架部署方并配置到 `PLUGIN_PUBLIC_KEY_PEM`；私钥务必妥善保管（泄漏等同可伪造签名）。
+说明：Lite 单机版不做安装期签名与完整性强制校验（`manifest.json` 作为打包元信息随包分发，供 `show` 查看与人工核验）。
 
 ---
 
@@ -803,7 +782,6 @@ FLASKTOOLKIT_HOST=0.0.0.0 FLASKTOOLKIT_PORT=8000 python app.py
 | `test_admin_api.py` | 管理端 API 单测（system/info、plugins、stats、logs、factory-reset scope 校验、上传 413/400） | 21 项 |
 | `test_factory_reset.py` | Factory Reset 范围测试（部分/全部删除与保留、内置插件保护、空/非法 scope 无副作用） | 37 项 |
 | `test_error_pages.py` | 统一错误码页面渲染（404/405 真实触发 + 400/401/403/500 模板，双环境无 auth/带 auth） | 12 项 |
-| `test_package_sign.py` | 插件包完整性校验与签名专项（篡改/加料/缺失检测、签名验证、strict/warn/off 模式、路由集成） | 22 项 |
 | `test_plugin_cleanup.py` | 插件卸载 installed_files 清单专项（多 .py 包安装清单完整/卸载全清/clean_old 更新清理/越界路径防御） | 23 项 |
 | `test_frontend_permission.py` | 前端工具访问控制（三层权限 + 改权限 API 鉴权/边界 + 静态资源一致 + update 保留 permission） | 25 项 |
 | `test_tools_ops.py` | 开发运维工具回归（backup 创建/恢复、reset 范围、config 设置/非法值/unset） | 19 项 |
@@ -824,17 +802,16 @@ python tests/test_frontend_chain.py   # 23 项（前端工具链路，隔离目�
 python tests/test_admin_api.py        # 21 项（管理端 API，隔离目录）
 python tests/test_factory_reset.py    # 37 项（Factory Reset 范围，隔离目录）
 python tests/test_error_pages.py      # 12 项（错误码页面，隔离目录）
-python tests/test_package_sign.py     # 22 项（完整性校验/签名，隔离目录）
 python tests/test_plugin_cleanup.py    # 23 项（插件卸载 installed_files 清单，隔离目录）
 python tests/test_frontend_permission.py # 25 项（前端工具访问控制，隔离目录）
 python tests/test_tools_ops.py         # 19 项（backup/reset/config 运维工具，隔离目录）
 python tests/test_page_router.py       # 21 项（大插件多模板页面路由 + 纯 API 无 name 插件调试页回归，隔离目录）
 python tests/test_framework_fixes.py    # 9 项（public_page 豁免 + CSRF 单值注入，隔离目录）
 python tests/test_file_transfer.py       # 12 项（文件传输强化，隔离目录）
-# 合计 18 个脚本 331 项
+# 合计 17 个脚本 309 项
 ```
 
-说明：`test_meta_e2e.py` 与 `test_frontend_chain.py` / `test_admin_api.py` / `test_factory_reset.py` / `test_error_pages.py` / `test_package_sign.py` 均通过 mock 基础目录 + `sys.path` 指向临时插件目录运行，不污染真实项目，可重复执行；`test_reload_race.py` 使用 Flask test client，在测试开头手动调用 `load_plugins()` 初始化（`load_plugins` 仅在 `app.py` 的 `main` 段自动调用）。
+说明：`test_meta_e2e.py` 与 `test_frontend_chain.py` / `test_admin_api.py` / `test_factory_reset.py` / `test_error_pages.py` 均通过 mock 基础目录 + `sys.path` 指向临时插件目录运行，不污染真实项目，可重复执行；`test_reload_race.py` 使用 Flask test client，在测试开头手动调用 `load_plugins()` 初始化（`load_plugins` 仅在 `app.py` 的 `main` 段自动调用）。
 
 上传大小限制（413）已由 `test_admin_api.py`（插件包）与 `test_frontend_chain.py`（工具包）覆盖。
 
@@ -870,14 +847,11 @@ python tools/config.py env                  # 生成环境变量示例
 | `LOG_DIR` | BASE_DIR/logs | 日志目录 |
 | `STATS_FILE` | BASE_DIR/data/stats.json | 统计数据文件 |
 | `PACKAGE_MAX_UPLOAD_SIZE_MB` | 10 | 插件包/工具包上传大小上限（MB） |
-| `PACKAGE_INTEGRITY_MODE` | warn | 完整性校验模式（strict/warn/off） |
-| `PLUGIN_PUBLIC_KEY_PEM` | （空） | 插件签名公钥路径 |
 
 示例：
 
 ```bash
 python tools/config.py set PACKAGE_MAX_UPLOAD_SIZE_MB 20
-python tools/config.py set PACKAGE_INTEGRITY_MODE strict
 python tools/config.py set HOST 0.0.0.0
 python tools/config.py set PORT 8080
 python tools/config.py set DEBUG true

@@ -1,4 +1,4 @@
-# FlaskToolkit 运行依赖（已验证版本组合，版本锁定以保证可复现）
+# FlaskToolkit 运行/开发统一依赖（已验证版本组合，版本锁定以保证可复现）
 # 安装：pip install -r requirements.txt
 
 Flask==3.1.3
@@ -6,3 +6,11 @@ Flask-Cors==6.0.5
 # APScheduler 4.x 为破坏性大版本（BackgroundScheduler 等 API 变更），锁定 3.x
 APScheduler==3.11.3
 watchdog==6.0.0
+
+# 端到端 HTTP 链路验证（examples/install_all.py、tests/verify_frontend_chain*.py）
+requests==2.32.3
+
+# 说明：
+# - 回归测试（tests/test_*.py）为纯 Python 自建框架，不依赖 pytest 等测试框架。
+# - 全部回归测试命令（在项目根目录执行）：
+#     for t in tests/test_*.py; do python "$t"; done

@@ -44,7 +44,6 @@ def make_tree(root):
     w(os.path.join(root, 'plugins', '__init__.py'))
     w(os.path.join(root, 'plugins', 'base_plugin.py'), 'class BasePlugin: pass')
     w(os.path.join(root, 'plugins', 'auth.py'), 'class AuthPlugin: pass')
-    w(os.path.join(root, 'plugins', 'user_manage.py'), 'class UserManagePlugin: pass')
     w(os.path.join(root, 'plugins', 'demo_custom.py'), 'class DemoPlugin: pass')
     w(os.path.join(root, 'plugins', 'demo_custom.json'), '{"name": "demo_custom"}')
     w(os.path.join(root, 'plugins', 'status.json'), '{}')
@@ -59,7 +58,6 @@ def make_tree(root):
     w(os.path.join(root, 'plugins', 'temp', 'demo_custom', 't'), 'x')
     # templates/plugins：内置模板 + 自定义模板 + 静态
     w(os.path.join(root, 'templates', 'plugins', 'auth.html'))
-    w(os.path.join(root, 'templates', 'plugins', 'user_manage.html'))
     w(os.path.join(root, 'templates', 'plugins', 'demo_custom.html'))
     w(os.path.join(root, 'templates', 'plugins', 'static', 'auth', 'a.js'))
     w(os.path.join(root, 'templates', 'plugins', 'static', 'demo_custom', 'd.js'))
@@ -118,8 +116,6 @@ def test_plugins_scope():
         # 内置受保护
         check('plugins scope 保留内置 auth.py',
               os.path.exists(os.path.join(root, 'plugins', 'auth.py')), '')
-        check('plugins scope 保留内置 user_manage.py',
-              os.path.exists(os.path.join(root, 'plugins', 'user_manage.py')), '')
         # base_plugin / __init__ / status.json 保留
         check('plugins scope 保留 base_plugin.py',
               os.path.exists(os.path.join(root, 'plugins', 'base_plugin.py')), '')

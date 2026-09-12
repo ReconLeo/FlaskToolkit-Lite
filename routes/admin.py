@@ -10,14 +10,12 @@ from flask import jsonify, render_template, request
 
 import global_var
 from core.factory_reset import factory_reset
-from core.package_sign import verify_package
 from core.permission import admin_api
 from core.plugin_cache import compute_directory_fingerprint, load_plugin_cache
 from core.plugin_loader import load_plugins
 from core.plugin_pack import (cleanup_plugin_resources, compare_versions,
                               extract_plugin_pack, parse_plugin_pack)
 from core.plugin_status import load_plugin_status, save_plugin_status
-from core.audit import log_audit
 from core.utils import check_upload_size, secure_filename_cn
 from core.watcher import save_cache_internal
 
@@ -58,7 +56,6 @@ def register(app):
         global_var.plugin_status[plugin_name] = global_var.plugin_status.get(plugin_name, {})
         global_var.plugin_status[plugin_name]['enabled'] = True
         save_plugin_status()
-        log_audit('插件启用', plugin_name, 'ok')
 
         # 增量更新缓存中的状态快照
         cache = load_plugin_cache()
@@ -80,7 +77,6 @@ def register(app):
         global_var.plugin_status[plugin_name] = global_var.plugin_status.get(plugin_name, {})
         global_var.plugin_status[plugin_name]['enabled'] = False
         save_plugin_status()
-        log_audit('插件禁用', plugin_name, 'ok')
 
         # 增量更新缓存中的状态快照
         cache = load_plugin_cache()
@@ -123,7 +119,6 @@ def register(app):
             # 删除状态
             global_var.plugin_status.pop(plugin_name, None)
             save_plugin_status()
-            log_audit('插件卸载', plugin_name, 'ok')
 
             # 增量更新缓存（移除已卸载插件的条目）
             cache = load_plugin_cache()
@@ -170,12 +165,6 @@ def register(app):
         file.save(temp_path)
         try:
             desc = parse_plugin_pack(temp_path)
-            # 完整性校验（P2-4）
-            vres = verify_package(temp_path, 'backend')
-            if not vres['ok']:
-                return jsonify({"code": 400, "message": vres['message']}), 400
-            if vres.get('warn_only'):
-                logger.warning(vres['message'], extra={'plugin': 'system'})
             # 校验包内插件名与目标一致
             if desc['name'] != plugin_name:
                 return jsonify({
@@ -212,7 +201,6 @@ def register(app):
                 'history': _hist,
             }
             save_plugin_status()
-            log_audit('插件更新', plugin_name, 'ok', f"v{current_version}→v{new_version} 来源 {temp_filename}")
             return jsonify({"code": 200, "message": f"插件 {plugin_name} 已更新"})
         except ValueError as e:
             return jsonify({"code": 400, "message": str(e)}), 400
@@ -253,12 +241,6 @@ def register(app):
         try:
             # 解析描述文件并校验主插件文件
             desc = parse_plugin_pack(temp_path)
-            # 完整性校验（P2-4 方案C：manifest 哈希清单 + 可选签名）
-            vres = verify_package(temp_path, 'backend')
-            if not vres['ok']:
-                return jsonify({"code": 400, "message": vres['message']}), 400
-            if vres.get('warn_only'):
-                logger.warning(vres['message'], extra={'plugin': 'system'})
             plugin_name = desc['name']
             plugin_file = os.path.join(global_var.BASE_DIR, 'plugins', f'{plugin_name}.py')
 
@@ -280,7 +262,6 @@ def register(app):
                 'history': [{'version': str(desc.get('version', '?')), 'time': _now, 'source': temp_filename}],
             }
             save_plugin_status()
-            log_audit('插件安装', plugin_name, 'ok', f"v{desc.get('version', '?')} 来源 {temp_filename}")
             return jsonify({"code": 200, "message": f"插件 {plugin_name} 上传成功，已自动加载"})
         except ValueError as e:
             # 校验类错误：清理可能残留的解压文件
@@ -323,97 +304,12 @@ def register(app):
             load_plugins()
         except Exception as e:
             logger.error(f"Factory Reset 后重载插件失败: {str(e)}", extra={'plugin': 'system'})
-        log_audit('工厂重置', str(scope), 'ok',
-                  f"清理 {len(results['cleaned'])} 项，失败 {len(results['failed'])} 项")
         return jsonify({
             "code": 200,
             "data": results,
             "message": "重置完成",
         })
 
-    @app.route('/api/admin/audit', methods=['GET'])
-    @admin_api
-    def get_audit_api():
-        """获取审计日志（最近操作记录，倒序）"""
-        from core.audit import get_audit_logs
-        lines_raw = request.args.get('lines', '50')
-        try:
-            lines = int(lines_raw)
-            lines = min(max(lines, 1), 500)
-        except (TypeError, ValueError):
-            lines = 50
-        return jsonify({"code": 200, "data": get_audit_logs(lines)})
-
-    @app.route('/api/admin/stats', methods=['GET'])
-    @admin_api
-    def get_stats():
-        """获取调用统计"""
-        total_api_calls = sum(global_var.call_stats.values())
-        total_frontend_access = sum(global_var.frontend_access_stats.values())
-
-        return jsonify({
-            "code": 200,
-            "data": {
-                "total_plugins": len(global_var.plugins),
-                "total_plugins_catalog": len(global_var.plugin_catalog),
-                "total_frontend_tools": len(global_var.frontend_tools),
-                "total_api_calls": total_api_calls,
-                "total_frontend_access": total_frontend_access,
-                "total_calls": total_api_calls + total_frontend_access,
-                "api_call_details": global_var.call_stats,
-                "frontend_access_details": global_var.frontend_access_stats
-            }
-        })
-
-    @app.route('/api/admin/logs', methods=['GET'])
-    @admin_api
-    def get_logs():
-        """获取最新日志"""
-        # 阶段二-B：level 白名单化（仅允许标准日志级别，非法值回退 info，同时消除日志文件路径拼接的路径遍历风险）
-        level = request.args.get('level', 'info').lower()
-        _ALLOWED_LOG_LEVELS = ('debug', 'info', 'warning', 'error', 'critical')
-        if level not in _ALLOWED_LOG_LEVELS:
-            level = 'info'
-        # lines 参数安全转换（非数字/越界回退默认 100）
-        try:
-            lines = int(request.args.get('lines', 100))
-            if lines < 1:
-                lines = 100
-        except (TypeError, ValueError):
-            lines = 100
-        plugin = request.args.get('plugin', None)
-
-        # 日志文件名映射：app.log 记录 INFO+，error.log 记录 ERROR+
-        # （修复：此前按 level.log 读取但实际文件名是 app.log/error.log，导致日志页恒为空）
-        _LEVEL_FILE = {
-            'debug': ('app.log', None),
-            'info': ('app.log', None),
-            'warning': ('app.log', 'WARNING'),
-            'error': ('error.log', None),
-            'critical': ('error.log', 'CRITICAL'),
-        }
-        filename, level_marker = _LEVEL_FILE[level]
-        log_file = os.path.join(global_var.LOG_DIR, filename)
-        if not os.path.exists(log_file):
-            return jsonify({"code": 200, "data": []})
-
-        try:
-            with open(log_file, 'r', encoding='utf-8') as f:
-                all_lines = f.readlines()
-                filtered = all_lines[-lines:] if len(all_lines) > lines else all_lines
-
-                # 按级别标记二次过滤（如 warning 从 app.log 中筛出 WARNING 行）
-                if level_marker:
-                    filtered = [line for line in filtered if f' - {level_marker} - ' in line]
-
-                if plugin:
-                    filtered = [line for line in filtered if f'[{plugin}]' in line]
-
-                return jsonify({"code": 200, "data": filtered})
-        except Exception as e:
-            return jsonify({"code": 500, "message": f"读取日志失败: {str(e)}"}), 500
-
-    # ---------- 系统信息接口 ----------
     @app.route('/api/admin/system/info', methods=['GET'])
     @admin_api
     def get_system_info():
@@ -465,18 +361,6 @@ def register(app):
     def admin_plugins():
         """管理后台：插件管理页面"""
         return _admin_page('admin/plugins.html', 'plugins')
-
-    @app.route('/admin/logs')
-    @admin_api
-    def admin_logs():
-        """管理后台：日志查看页面"""
-        return _admin_page('admin/logs.html', 'logs')
-
-    @app.route('/admin/stats')
-    @admin_api
-    def admin_stats():
-        """管理后台：统计页面"""
-        return _admin_page('admin/stats.html', 'stats')
 
     @app.route('/admin/system')
     @admin_api

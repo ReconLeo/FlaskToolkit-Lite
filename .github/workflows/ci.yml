@@ -33,7 +33,7 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt -r requirements-dev.txt
+          pip install -r requirements.txt
 
       - name: 语法编译检查
         run: |
@@ -54,7 +54,7 @@ jobs:
           set -e
           TESTS=(test_permission test_stage2 test_zip_slip test_pack_meta test_reload_race \
                  test_meta_e2e test_frontend_zip_slip test_frontend_chain test_admin_api \
-                 test_factory_reset test_error_pages test_package_sign \
+                 test_factory_reset test_error_pages \
                  test_plugin_cleanup test_frontend_permission test_tools_ops test_page_router \
                  test_framework_fixes test_file_transfer)
           for t in "${TESTS[@]}"; do

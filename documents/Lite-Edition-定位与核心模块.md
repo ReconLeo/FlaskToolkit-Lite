@@ -53,12 +53,14 @@ Lite Edition 是从 FlaskToolkit 演进线上拆分出的**极简、轻量、只
 | `core/frontend_tools.py` | 73 | 前端 HTML 工具混合展示（框架特色能力） |
 | `core/stats.py` | 56 | 基础页面统计（v4.2.2 轻量版，**非** main 的 v4.14 统计画像） |
 
-### 3.3 三级·可选 / 待裁（按需决策）
+### 3.3 已削除（档位2 单机化落地）
 
-| 模块 | 行数 | 说明 |
-|------|------|------|
-| `core/package_sign.py` | 204 | 插件完整性签名（P2 方案C）。安全增强；Lite 个人场景可**剥离**，但需同步检查 `plugin_pack.py` 对其的校验依赖，裁撤时评估解耦成本 |
-| `core/audit.py` | 86 | 管理后台审计日志（运维追溯）。轻量，建议保留；若极致精简可去 |
+| 模块 | 原行数 | 削除原因 |
+|------|--------|---------|
+| `core/package_sign.py` | 204 | 插件完整性签名。单机可信本机环境无需签名校验；`plugin_pack.py` 本不依赖它，削除不破坏插件加载 |
+| `core/audit.py` | 86 | 管理后台审计日志。单机无多用户敏感操作追溯需求，随后台审计页一并移除 |
+| `plugins/user_manage.py`、`plugins/user_manage.json` | — | 多用户账号管理。Lite 保留单管理员登录（`auth` 自带 `admin/admin123` 初始化），多用户 CRUD 移除 |
+| `templates/admin/logs.html`、`stats.html`、`plugins/user_manage.html` | — | 后台仅保留 dashboard + plugins + system，去 logs/stats/audit 页与 user_manage 模板 |
 
 ### 3.4 运维工具（tools/，保留）
 
@@ -90,3 +92,4 @@ Lite Edition 是从 FlaskToolkit 演进线上拆分出的**极简、轻量、只
 | 日期 | 决策 |
 |------|------|
 | 2026-09-12 | 选定 `v4.2.2`（`4d7d602`）为 Lite 分叉点：核心完备（插件包/权限/后台/运维/CI）、外围最少（深层安全与生态能力均未引入）；补 tag `v4.2.2`、创建分支 `lite` |
+| 2026-09-12 | 档位2·单机化削减落地：保留单管理员登录、后台仅 dashboard+plugins+system；删除 package_sign/audit/user_manage，去后台 logs/stats/audit 页；core 模块 15→13 |
