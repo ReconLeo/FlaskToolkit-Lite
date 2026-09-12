@@ -1,4 +1,4 @@
-# FlaskToolkit
+# FlaskToolkit-Lite
 
 <p align="center">
   <img src="https://github.com/ReconLeo/FlaskToolkit-Lite/actions/workflows/ci.yml/badge.svg" alt="CI">
@@ -71,7 +71,7 @@ python examples/install_all.py
 <summary>Expand: 17 test scripts</summary>
 
 ```bash
-cd FlaskToolkit
+cd FlaskToolkit-Lite
 python tests/test_permission.py            # permission system 20
 python tests/test_stage2.py                # security hardening regression 19
 python tests/test_zip_slip.py              # plugin-package zip slip 19

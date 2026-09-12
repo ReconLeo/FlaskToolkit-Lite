@@ -1,59 +1,16 @@
-# Flask插件框架开发规范
+# Flask插件框架开发规范（Lite 单机版）
 
-## 版本：v4.2.2（文件传输强化） | 更新日期：2026年08月26日
+## 版本：基于 FlaskToolkit v4.2.2（文件传输强化） | 更新日期：2026年09月12日
 
-### 版本补充说明（2026-08-26，AirDrop 插件化改造同步）
-- **插件公开页面能力（8.1 / 4.5.1）**：`/plugin/<name>` 页面默认要求登录（全局守卫）。新增插件级豁免：插件实例声明 `public_page=True` 时其 `/plugin/` 页面免登录（对局域网公开工具 / 信息落地页友好，默认 False 不影响其他插件）。
+> **关于 Lite 单机版**：本规范对应 **FlaskToolkit-Lite**——从 FlaskToolkit v4.2.2 分叉出的单机精简版，相比主仓库单机化削减（去掉插件包签名/完整性强制校验、审计日志、多用户管理、统计/日志后台页），**保留单管理员登录**（`auth` 内置插件）、三层权限、插件包分发、前端工具、Factory Reset 与开发运维工具。本规范正文为 Lite 当前功能的唯一权威说明。
+
+### v4.2.2 关键能力（Lite 基于此版本分叉，均已保留）
+- **插件公开页面能力（8.1 / 4.5.1）**：`/plugin/<name>` 页面默认要求登录（全局守卫）。插件声明 `public_page=True` 时其 `/plugin/` 页面免登录（对局域网公开工具 / 信息落地页友好，默认 False 不影响其他插件）。
 - **plugin_common.js 复核修复（6.2）**：`PluginCommon.request()` 曾与全局 XHR 拦截**双重注入 X-CSRF-Token**（同名头被浏览器逗号拼接为 `token, token`），鉴权模式下写请求后端 CSRF 双提交校验失败返回 403。已移除 `request()` 内手动注入（依赖全局拦截单次注入），浏览器端到端复核确认。
-- **AirDrop 插件落地（`plugins/airdrop`）**：局域网文件共享插件（上传/下载/删除/批量删除/批量下载 zip/过期清理/局域网地址/服务端打开上传文件夹），**可配置双模式鉴权**（`configs/airdrop.json` 的 `auth_required`：false 全 public 免登录、true 按权限矩阵），数据目录经配置指向原 AirDrop `uploads`，零迁移。
-- 注：以上为 AirDrop 插件化改造期间的文档补充（2026-08-26）。
-
-### 版本说明（v4.2.2 变更，文件传输强化）
-- **框架版本升级至 v4.2.2**（`global_var.FRAMEWORK_VERSION`）：统一文件上传与下载能力。
 - **全局上传上限兜底（5.6.x / 6.5）**：`app.config['MAX_CONTENT_LENGTH'] = global_var.MAX_UPLOAD_SIZE`（默认 **100MB**，经 config CLI 的 `MAX_UPLOAD_SIZE_MB` 调整）；超限统一返回 413（API 场景 JSON、页面场景模板 `413.html`）。
-- **插件级上传限制统一（5.6.x）**：`BasePlugin.max_upload_size` 单位统一为 **MB**（None 回退全局默认）；`save_uploaded_file`/`check_upload_limit` 保存前基于流 seek/tell 预检（不落盘）；**route 级 `max_upload`（MB）覆盖**——权限包装器注入 g 并同步提升本请求 `request.max_content_length`，可突破全局默认（如 AirDrop 的 GB 级大文件路由）。
-- **下载能力统一（5.6.x）**：`send_file_response` 增强——中文文件名自动按 **RFC 5987（filename*）** 编码避免乱码、**下载统计**默认计入插件热度（`call_stats[plugin:endpoint]`）、支持 Range 断点续传（206）、`content_disposition_type`/`count_download`/`stats_endpoint` 参数。
+- **插件级上传限制统一（5.6.x）**：`BasePlugin.max_upload_size` 单位统一为 **MB**（None 回退全局默认）；`save_uploaded_file`/`check_upload_limit` 保存前基于流 seek/tell 预检（不落盘）；**route 级 `max_upload`（MB）覆盖**——权限包装器注入 g 并同步提升本请求 `request.max_content_length`，可突破全局默认（如 GB 级大文件路由）。
+- **下载能力统一（5.6.x）**：`send_file_response` 增强——中文文件名自动按 **RFC 5987（filename*）** 编码避免乱码、**下载统计**默认计入插件热度、支持 Range 断点续传（206）、`content_disposition_type`/`count_download`/`stats_endpoint` 参数。
 - **依赖检查时机（生命周期）**：`on_load` 阶段跨插件依赖检查默认降级为 **warning**（不阻断）；新增 **`on_ready` 就绪钩子**——所有插件加载完成后统一调用（此时 `global_var.plugins` 完整，依赖判断准确）；启用严格模式（`PLUGIN_STRICT_MODE=True`）时依赖确认延后到 `on_ready` 执行。
-- **存量迁移**：airdrop `max_gb`（GB）映射为插件级 `max_upload_size`（MB）+ upload 路由声明 route 级 `max_upload`；async_file_demo 声明 `max_upload_size=20`（MB）；下载改走 `send_file_response`（中文名/统计）。
-- **回归测试扩充至 18 脚本 331 项**：新增 `test_file_transfer.py`（12 项：全局 413 / 插件级与 route 级上限 / 中文名下载 / 下载统计 / Range / on_ready 顺序），已纳入 CI。
-
-### 版本说明（v4.2.1 变更，框架小修复累计更新）
-- **框架版本升级至 v4.2.1**（`global_var.FRAMEWORK_VERSION`）：AirDrop 插件化改造期间的框架小修复正式合入主项目；官方示例 `require_framework_version` 不变（4.2.0 < 4.2.1 仍满足）。
-- **插件公开页面豁免正式纳入回归**（`tests/test_framework_fixes.py`）：`public_page=True` 插件页面免登录 200 / 普通插件页面仍守卫 302（auth 已装场景），防 interceptor 豁免逻辑回归。
-- **plugin_common.js 双重 CSRF 注入修复固化**：源码静态断言 X-CSRF-Token 注入全文件恰 1 处（全局 XHR send 拦截单次注入），request() 不再手动注入（防同名头逗号拼接 403）。
-- **回归测试套件扩充至 17 脚本 319 项**：新增 `test_framework_fixes.py`（public_page 豁免 + CSRF 单值注入 9 项），已纳入 CI。
-
-### 版本说明（v4.2 变更）
-- **插件包卸载升级为 installed_files 清单机制**（5.6.6）：安装时把插件引入文件的相对路径清单写入 `plugins/<name>.json`，卸载按清单逐个删除（支持多 `.py` 插件包彻底卸载，无残留），无清单回退旧逻辑（兼容存量插件）。
-- **前端工具访问控制**（4.6 / 6.5）：`/frontend/<name>` 页面与 `/frontend-static/` 静态资源按工具的 `permission` 字段做三层校验（`public`/`user`/`admin`，`auth` 未安装时全员放行）；上传/更新缺省 `permission=public`；新增改权限接口 `POST /api/admin/frontend/<name>/permission`；管理后台插件页提供前端工具权限下拉。
-- **回归测试套件扩充至 16 脚本 310 项**（12 章）：新增 `test_plugin_cleanup.py`（卸载 installed_files 清单 + clean_old + 越界防御 23 项）、`test_frontend_permission.py`（前端工具三层权限 + 改权限 API + update 保留 permission 25 项）、`test_tools_ops.py`（backup/reset/config 运维工具 19 项）、`test_page_router.py`（大插件多模板页面路由 + 纯 API 无 name 插件调试页回归 21 项），均隔离目录模式、已纳入 CI。
-- **公共页面体验升级（8.1）**：首页新增搜索与排序（默认/热度/字母，热度取 API 调用与访问统计）；登录页支持记住用户名、显示/隐藏密码；首页/登录/登出/裸插件调试四页面样式统一为 `static/css/main.css` 设计体系，脚本抽离至 `static/js/`。
-- **裸插件调试页增强（8.1）**：支持**路径参数**输入与替换（`<name>`/`<int:name>`，如 async_file_demo 的 `/status/<task_id>`）；**非安全方法自动携带 X-CSRF-Token**（修复带鉴权接口无法调试的 CSRF 403）；PUT/DELETE 改发 JSON body；展示 HTTP 状态/耗时/业务 code/实际 URL；结果一键复制与折叠、会话内请求历史。
-- **框架版本升级至 v4.2.0**（`global_var.FRAMEWORK_VERSION`）：页面路由 page=True / 模板命名空间 / render·render_index 助手（见 5.5.1）等大插件多模板能力随 v4.2 对齐；官方示例 `require_framework_version` 同步为 4.2.0。
-
-### 版本说明（v4.1 变更）
-- 后端插件分发改为**插件包（.zip）**机制：新增 5.6 节描述 plugin.json 描述文件、解压映射、静态资源访问与生命周期行为。
-- 静态资源路由改为全局通配路由 `/plugin-static/<name>/<path>`（热加载友好），插件自定义 `static_dir` 仍受支持。
-- 插件版本以 `plugin.json` 声明为准（落盘 `plugins/<name>.json`），扫描/目录指纹优先读取。
-- 新增**最低框架版本要求** `require_framework_version`（非强制，一经声明须满足，否则拒绝安装/加载），见 5.7。
-- 新增**内置插件**机制（`auth` / `user_manage`，`global_var.BUILTIN_PLUGINS`，不可卸载、受 Factory Reset 保护），见 5.8。
-- 新增 **Factory Reset（重置）**能力：部分/全部还原至安装初始状态，见 5.9。
-- 新增**管理后台**：`/admin/dashboard | plugins | logs | stats | system` 五页面（统一 `templates/admin/base.html` 布局 + `@admin_api` 权限保护）与系统信息接口 `GET /api/admin/system/info`，见 8.2 / 8.3。
-- 新增回归测试套件（zip slip 专项、描述一致性、重载竞态、元信息端到端），见 11 章。
-- `auth` 会话文件改为原子写（`.tmp` + `os.replace`），修复热加载重载时读到空文件的偶发 401 竞态。
-- 新增**前端工具静态资源支持**：工具包 zip 内 `static/` 目录随包分发，经 `/frontend-static/<name>/<path>` 通配路由访问（安全解压 + zip slip 防护），见 6.1 / 6.4。
-- 开启**模板自动重载**（`TEMPLATES_AUTO_RELOAD=True`）：前端工具/插件 html 更新后即时生效，无需重启服务。
-
-### 版本说明
-
-本版本基于 2026-08-22 完成的全栈重构（阶段一权限体系、阶段二安全加固、阶段三架构拆分）对齐更新，相比 v3.x 的主要变更：
-
-- **权限模型正式化**：新增 `@permission("public"/"user"/"admin")` 装饰器，未声明接口默认"仅登录"；旧版 `require_role` 兼容。
-- **鉴权与 CSRF**：登录后下发 HttpOnly `token` Cookie + 非 HttpOnly `csrf_token` Cookie，写请求需携带 `X-CSRF-Token` 头（前端由 `plugin_common.js` 自动注入）。
-- **统一错误语义**：`error_response` 现返回对应 HTTP 状态码（此前 body 带 code 但 HTTP 恒 200），前端以 body.code 判断业务结果。
-- **架构分层**：`app.py` 收敛为纯入口（149 行），服务逻辑拆入 `core/`，路由拆入 `routes/`；插件目录改由**内存注册表**提供，首页/管理页不再每次请求扫描磁盘。
-- **运行配置环境变量化**：`FLASKTOOLKIT_HOST` / `FLASKTOOLKIT_PORT` / `FLASKTOOLKIT_DEBUG`。
-- **生命周期钩子补齐**：新增 `on_unload()` / `on_uninstall()`（与原有 `on_load()` / `on_shutdown()` 对齐）。
 
 ---
 
@@ -71,7 +28,7 @@
 ## 二、项目结构（重构后）
 
 ```
-FlaskToolkit/
+FlaskToolkit-Lite/
 ├── app.py                     # 入口：初始化、加载用户配置与启动自检、register_routes(app)、关闭钩子
 ├── global_var.py              # 纯路径常量 + 共享状态 + 用户配置（CONFIG_ITEMS / load_user_config）
 ├── requirements.txt           # 运行依赖（版本锁定）
@@ -93,7 +50,7 @@ FlaskToolkit/
 │   ├── public.py              #   公开页面 / 错误处理器
 │   ├── plugin.py              #   插件页面 / API 分发
 │   ├── frontend.py            #   前端工具页面 + 管理 API
-│   └── admin.py               #   插件管理 API / 统计 / 日志 / 审计
+│   └── admin.py               #   插件管理 API / 系统信息 / Factory Reset / 后台页面
 ├── plugins/                   # 插件目录
 │   ├── base_plugin.py         #   插件基类 + @permission 装饰器 + 生命周期钩子
 │   ├── auth.py                #   可选鉴权插件（PBKDF2 / HttpOnly Cookie + CSRF）
@@ -105,12 +62,12 @@ FlaskToolkit/
 │   └── reset.py               #   深度重置工具（服务停止时使用，绕过运行时文件锁定）
 ├── tests/                     # 回归测试套件（17 脚本 309 项 + 端到端链路验证）
 ├── templates/                 # 页面模板（首页/登录/错误码页 400-500/admin 管理后台/插件页）
-│   ├── admin/                 #   管理后台（dashboard / plugins / logs / stats / system）
+│   ├── admin/                 #   管理后台（dashboard / plugins / system）
 │   ├── frontend_tools/        #   前端工具模板
 │   └── plugins/               #   插件页面模板
 ├── static/                    # 静态资源（css/main.css 统一设计体系 + error.css 错误页；js/plugin_common.js 统一鉴权前端 + main.js 公共脚本 + index/login/plugin_default/logout 页面脚本）
 ├── .github/workflows/ci.yml   # GitHub Actions CI 工作流
-├── data/                      # 运行时数据（统计/审计/用户配置，已 gitignore）
+├── data/                      # 运行时数据（统计/用户配置，已 gitignore）
 ├── logs/                      # 运行日志（已 gitignore）
 ├── documents/                 # 开发规范 / Lite 定位
 ├── LICENSE                    # MIT 许可
@@ -197,7 +154,7 @@ from .base_plugin import permission as permission_required
 
 ### 4.5.1 插件公开页面（public_page，v4.2.1 新增）
 
-`/plugin/<name>` 页面受全局登录守卫保护（auth 已安装时未登录访问跳转登录页）。若插件希望页面公开（局域网工具、信息落地页、免登录场景），在插件实例上声明 `public_page = True` 即可豁免（由 `routes/interceptor.py` 的 `/plugin/` 守卫识别）；默认 False，不影响其他插件。典型用法：`self.public_page = not self.auth_required`（与插件免登录模式联动，AirDrop 插件即此模式）。
+`/plugin/<name>` 页面受全局登录守卫保护（auth 已安装时未登录访问跳转登录页）。若插件希望页面公开（局域网工具、信息落地页、免登录场景），在插件实例上声明 `public_page = True` 即可豁免（由 `routes/interceptor.py` 的 `/plugin/` 守卫识别）；默认 False，不影响其他插件。典型用法：`self.public_page = not self.auth_required`（与插件免登录模式联动）。
 
 ### 4.6 前端工具访问控制（v4.2 新增）
 
@@ -246,7 +203,7 @@ class HelloPlugin(BasePlugin):
 
     @permission_required("public")
     def hello_api(self):
-        return self.success_response({"message": "Hello FlaskToolkit!"})
+        return self.success_response({"message": "Hello FlaskToolkit-Lite!"})
 ```
 
 ### 5.3 生命周期钩子（v4.0 补齐）
@@ -394,7 +351,7 @@ def get_item(self, item_id):
 插件模板中通过全局通配路由 `/plugin-static/<name>/<path>` 访问静态资源（启动时注册一次，运行时按插件名分发，热加载友好）：
 
 ```html
-<link rel="stylesheet" href="/plugin-static/user_manage/css/user_manage.css">
+<link rel="stylesheet" href="/plugin-static/<name>/css/<plugin>.css">
 ```
 
 #### 5.6.6 生命周期行为
@@ -403,22 +360,23 @@ def get_item(self, item_id):
 - **更新**：校验包内插件名与目标一致 + 新版本必须高于当前版本 → 覆盖解压 → 重载。
 - **卸载**：按安装时写入 `plugins/<name>.json` 的 `installed_files` 清单（相对路径）逐个删除插件引入的文件（主 `.py`、辅助 `.py` 模块、描述文件、模板、静态资源），并清理残留空目录；老插件无清单时回退为删除主 `.py`、描述文件 `plugins/<name>.json`、`templates/plugins/<name>.html` 与 `templates/plugins/static/<name>/` 目录。
 
-#### 5.6.7 Demo：UserManage 插件包
+#### 5.6.7 Demo：multitool_demo（大插件三要素示例）
 
-参考 `C:\Users\Admin\Desktop\UserManage` 目录：
+参考 `examples/plugins/multitool_demo/` 目录：
 
 ```
-UserManage/
-├── plugin.json              # name=user_manage, version=1.0.1, permission=admin, dependencies=["auth"], require_framework_version=4.0.0
-├── user_manage.py           # 主插件
+multitool_demo/
+├── plugin.json              # name=multitool_demo, version=1.0.0, require_framework_version=4.2.0
+├── multitool_demo.py        # 主插件（页面路由 page=True，主入口 + 文本分析 API）
+├── multitool_utils.py       # 辅助 .py 模块（随包分发，卸载按 installed_files 清单清理）
 ├── templates/
-│   └── user_manage.html     # 页面模板
+│   └── multitool_demo/      # 模板命名空间（index / hello / text / topwords.html）
 └── static/
-    └── css/
-        └── user_manage.css  # 静态资源（含 .plugin-static-badge 徽章样式）
+    ├── css/demo.css         # 静态资源
+    └── js/demo.js
 ```
 
-打包命令：`UserManage-v1.0.1.zip`（zip 根目录直接包含上述文件）。上传后在管理页即可看到该插件，访问 `/plugin/user_manage` 渲染页面，静态资源经 `/plugin-static/user_manage/...` 正常加载。
+打包命令：`multitool_demo-v1.0.0.zip`（zip 根目录直接包含上述文件）。上传后在管理页即可看到该插件，访问 `/plugin/multitool_demo` 渲染主入口页，子页与静态资源经 `/plugin-static/multitool_demo/...` 正常加载。
 
 ---
 
@@ -427,13 +385,13 @@ UserManage/
 后端插件可声明 `require_framework_version`（`plugin.json` 或插件类属性，非强制），用于声明插件所需的最低框架版本，以支撑框架持续迭代：
 
 - **未声明**：不检查，任意框架版本可用。
-- **声明了**：上传/更新时与 `global_var.FRAMEWORK_VERSION`（当前 `4.2.0`）做点分版本比较（`compare_versions`，修复了前端工具原先字符串比较的缺陷）；插件要求高于框架版本 → 拒绝安装并报告。
+- **声明了**：上传/更新时与 `global_var.FRAMEWORK_VERSION`（当前 `4.2.2`）做点分版本比较（`compare_versions`，修复了前端工具原先字符串比较的缺陷）；插件要求高于框架版本 → 拒绝安装并报告。
 - **运行时双重校验**：`load_plugins` 加载时同样校验（防止手工放置插件绕过上传校验），不满足则跳过加载并报错。
 - 参与描述一致性对齐（冲突拒绝/缺失补全），见 5.6.3。
 
 ```json
 // plugin.json 示例：要求框架 ≥ 4.0.0
-{"name": "user_manage", "version": "1.0.1", "require_framework_version": "4.0.0"}
+{"name": "multitool_demo", "version": "1.0.0", "require_framework_version": "4.2.0"}
 ```
 
 ### 5.8 内置插件（Builtin）
@@ -443,7 +401,6 @@ UserManage/
 | 插件 | 说明 |
 |------|------|
 | `auth` | 认证/会话/权限（可选插件，但作为内置分发；未安装时游客模式放行） |
-| `user_manage` | 用户管理（作为内置插件，同时充当插件包机制的官方演示） |
 
 - **受保护**：管理页插件列表展示内置徽标；卸载接口拒绝删除内置插件；Factory Reset 的 `plugins` 范围跳过内置插件。
 - **随框架分发**：内置插件的 `.py`、描述文件、模板与静态资源随项目存放，加载方式与其他插件一致。
@@ -650,21 +607,17 @@ def validate_params(self, params):
 
 ### 8.2 管理后台页面
 
-管理后台提供前端页面管理 FlaskToolkit 应用（入口 `/admin/dashboard`，首页右上角「🛠️ 管理后台」按钮），统一继承 `templates/admin/base.html` 布局（顶部导航：仪表盘/插件管理/日志/统计/系统管理 + 用户信息 + 退出登录），**所有页面路由加 `@admin_api` 保护**（未登录 302 跳登录页携带 redirect、普通用户渲染 403 页、auth 未安装时放行）：
+管理后台提供前端页面管理 FlaskToolkit-Lite 应用（入口 `/admin/dashboard`，首页右上角「🛠️ 管理后台」按钮），统一继承 `templates/admin/base.html` 布局（顶部导航：仪表盘/插件管理/系统管理 + 用户信息 + 退出登录），**所有页面路由加 `@admin_api` 保护**（未登录 302 跳登录页携带 redirect、普通用户渲染 403 页、auth 未安装时放行）：
 
 | 页面 | 路径 | 功能 |
 |------|------|------|
 | 仪表盘 | `/admin/dashboard` | 统计卡片 + 系统信息 + 快捷入口 + 内置插件列表 |
 | 插件管理 | `/admin/plugins` | 上传/更新/卸载/启用/禁用/配置/全部重置 |
-| 日志 | `/admin/logs` | 按级别与行数查看日志、按插件过滤 |
-| 统计 | `/admin/stats` | API 调用 Top100（可搜索）+ 前端访问 Top100 |
 | 系统管理 | `/admin/system` | 系统信息 + Factory Reset 分 scope 勾选 / 全部重置（见 5.9） |
 
 ### 8.3 管理端接口
 
 - `GET /api/admin/system/info`：框架版本、内置插件列表、Python/平台版本、base_dir、host、debug 标志与各类统计数（仪表盘与系统页数据源）。
-- `GET /api/admin/stats`：插件数（含 catalog）、前端工具数、API 调用与前端访问统计明细。
-- `GET /api/admin/logs`：按 `level`/`lines`/`plugin` 读取日志；级别白名单（非法值回退 info），级别映射到 `app.log`（INFO+）与 `error.log`（ERROR+），warning/critical 按行内 ` - LEVEL - ` 标记二次过滤。
 
 ---
 
@@ -704,14 +657,14 @@ def validate_params(self, params):
 ### 10.2 上传大小限制
 
 - 管理后台上传的**后端插件包**与**前端工具包**统一受 `global_var.PACKAGE_MAX_UPLOAD_SIZE`（默认 10MB）限制，超限返回 `413 Payload Too Large`。
-- 插件自身提供的「数据上传」接口大小由插件通过 `BasePlugin.max_upload_size` 自行约束（默认 10MB）。
+- 插件自身提供的「数据上传」接口大小由插件通过 `BasePlugin.max_upload_size`（MB，None 回退全局默认 `MAX_UPLOAD_SIZE_MB`=100MB）约束，路由级 `max_upload`（MB）可覆盖。
 
 ### 10.3 Factory Reset（恢复出厂设置）
 
 - 设计意图：将部分/全部框架数据还原至安装初始状态，**不提供自动备份**（数据丢失由用户自行承担）。
 - **此操作不可逆**：执行前请务必手动备份关键数据（`plugins/configs/`、`data/`、`frontend_tools.json` 等）。
 - 管理后台重置弹窗已内置「不可撤销、请先备份」的风险提示，确认后才会执行。
-- 内置插件（`auth`、`user_manage`）在重置中受保护不被删除；`all` 范围会重置其配置（auth 恢复默认 `admin/admin123`）。
+- 内置插件（`auth`）在重置中受保护不被删除；`all` 范围会重置其配置（auth 恢复默认 `admin/admin123`）。
 
 ### 10.4 插件包打包与清单（manifest）
 
@@ -779,7 +732,7 @@ FLASKTOOLKIT_HOST=0.0.0.0 FLASKTOOLKIT_PORT=8000 python app.py
 | `test_meta_e2e.py` | 插件包元信息端到端（上传/冲突/已存在/update 刷新/降级拒绝/require 拒绝，隔离目录模式可重复运行） | 10 项 |
 | `test_frontend_zip_slip.py` | 前端工具包安全解压 zip slip 专项（`..`/绝对路径/盘符拒绝 + 正常落位 + clean_static 更新清理 + 卸载资源清理） | 21 项 |
 | `test_frontend_chain.py` | 前端工具上传/更新/卸载端到端（含页面/静态资源渲染、clean_static、413 上传大小限制） | 23 项 |
-| `test_admin_api.py` | 管理端 API 单测（system/info、plugins、stats、logs、factory-reset scope 校验、上传 413/400） | 21 项 |
+| `test_admin_api.py` | 管理端 API 单测（system/info、plugins、factory-reset scope 校验、上传 413/400） | 21 项 |
 | `test_factory_reset.py` | Factory Reset 范围测试（部分/全部删除与保留、内置插件保护、空/非法 scope 无副作用） | 37 项 |
 | `test_error_pages.py` | 统一错误码页面渲染（404/405 真实触发 + 400/401/403/500 模板，双环境无 auth/带 auth） | 12 项 |
 | `test_plugin_cleanup.py` | 插件卸载 installed_files 清单专项（多 .py 包安装清单完整/卸载全清/clean_old 更新清理/越界路径防御） | 23 项 |
@@ -790,7 +743,7 @@ FLASKTOOLKIT_HOST=0.0.0.0 FLASKTOOLKIT_PORT=8000 python app.py
 | `test_file_transfer.py` | 文件传输强化（v4.2.2）：全局 413 / 插件级 max_upload_size 预检 / route 级 max_upload 覆盖 / 中文名下载 / 下载统计 / Range / on_ready 顺序 | 12 项 |
 
 ```bash
-cd FlaskToolkit   # 在项目根目录执行
+cd FlaskToolkit-Lite   # 在项目根目录执行
 python tests/test_permission.py       # 20 项（权限体系）
 python tests/test_stage2.py           # 19 项（安全加固回归）
 python tests/test_zip_slip.py         # 19 项
@@ -847,6 +800,8 @@ python tools/config.py env                  # 生成环境变量示例
 | `LOG_DIR` | BASE_DIR/logs | 日志目录 |
 | `STATS_FILE` | BASE_DIR/data/stats.json | 统计数据文件 |
 | `PACKAGE_MAX_UPLOAD_SIZE_MB` | 10 | 插件包/工具包上传大小上限（MB） |
+| `MAX_UPLOAD_SIZE_MB` | 100 | 全局文件上传上限（MB，映射 MAX_UPLOAD_SIZE，MAX_CONTENT_LENGTH 兜底） |
+| `PLUGIN_STRICT_MODE` | false | 严格模式：依赖检查延后到 on_ready（见 v4.2.2） |
 
 示例：
 
@@ -864,6 +819,7 @@ python tools/config.py set DEBUG true
 框架每次启动时执行完整性自检：
 
 - 校验核心文件/目录存在、第三方依赖（flask/flask_cors/apscheduler/watchdog）可导入、数据目录可写；
+- 时区数据可用性探测（Windows 需 tzdata 提供 IANA 时区库，缺失时启动创建调度器即崩，故在自检阶段致命报错；requirements.txt 已含 tzdata==2026.3）；
 - 首次启动执行完整自检并在 `data/.initialized` 写入标记，非首次做快速检查；
 - 致命问题（核心文件或依赖缺失）中止启动并给出修复提示；可写性问题仅告警。
 
@@ -882,7 +838,7 @@ python tools/backup.py info <名称>        # 查看某备份内容
 python tools/backup.py restore <名称>     # 恢复备份到项目（覆盖式）
 ```
 
-备份内容：`plugins/configs`、`plugins/status.json`、`plugins/data`、`data`（统计/审计/用户配置）、`frontend_tools.json`、`logs`。
+备份内容：`plugins/configs`、`plugins/status.json`、`plugins/data`、`data`（统计/用户配置）、`frontend_tools.json`、`logs`。
 
 ### 14.3 深度重置（tools/reset.py）
 
